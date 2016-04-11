@@ -85,6 +85,8 @@ def _system(calc_type, material):
         str(num_atoms), str(num_atom_types)))
     nl.append("    ecutwfc={},".format(str(material["ecutwfc"])))
     nl.append("    ecutrho={},".format(str(material["ecutrho"])))
+    nl.append("    noncolin=.true.,")
+    nl.append("    lspinorb=.true.,")
 
     if calc_type in ['scf', 'relax']:
         nl.append("    occupations='tetrahedra'")
