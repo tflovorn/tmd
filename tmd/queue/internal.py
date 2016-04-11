@@ -1,9 +1,9 @@
 import os
 import subprocess
-import tmd.pwscf.config as pwscf.config
+import tmd.pwscf.config
 
 def enqueue(config):
-    _write_queuefile(config)
+    write_queuefile(config)
 
     machine = config["machine"]
 
@@ -12,7 +12,7 @@ def enqueue(config):
     else:
         pass
 
-def _write_queuefile(config):
+def write_queuefile(config):
     machine = config["machine"]
 
     if machine == "__local__":
@@ -20,7 +20,7 @@ def _write_queuefile(config):
     else:
         pass
 
-def _get_qf_path(config):
+def get_qf_path(config):
     qf_name = "{}.run".format(config["prefix"])
     qf_path = os.path(config["rundir"], qf_name)
 
@@ -28,7 +28,7 @@ def _get_qf_path(config):
 
 def _write_queuefile_local(config):
     if config["command"] == "pw.x" or config["command"] == "pw2wannier90.x":
-        file_prefix = pwscf.config.file_prefix(config)
+        file_prefix = tmd.pwscf.config.file_prefix(config)
         cmd = "mpiexec -np {} {} < {}.in > {}.out".format(str(config["cores"]),
                 config["command"], file_prefix, file_prefix)
     else:
@@ -40,7 +40,7 @@ def _write_queuefile_local(config):
         fp.write(cmd)
 
 def _run_local(config):
-    qf_path = _get_qf_path(config)
+    qf_path = get_qf_path(config)
 
     cwd = os.getcwd()
     os.chdir(config["rundir"])
