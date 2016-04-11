@@ -13,9 +13,9 @@ def base_material():
 
     material["vacuum_dist"] = 20.0
 
-    material["ecutwfc_min"] = 60.0
-    material["ecutrho_min"] = 200.0
-    material["degauss_max"] = 0.02
+    material["ecutwfc"] = 60.0
+    material["ecutrho"] = 200.0
+    material["degauss"] = 0.02
 
     material["scf_conv_thr"] = 1e-8
     material["nscf_conv_thr"] = 1e-10
@@ -25,13 +25,13 @@ def base_material():
     material["relax_etot_conv_thr"] = 2e-5
     material["relax_forc_conv_thr"] = 2e-4
 
-    material["scf_Nk1_min"] = 9
-    material["scf_Nk2_min"] = 9
-    material["relax_Nk1_min"] = 9
-    material["relax_Nk2_min"] = 9
-    material["nscf_Nk1_min"] = 9
-    material["nscf_Nk2_min"] = 9
-    material["Nkband_default"] = 20
+    material["scf_Nk1"] = 9
+    material["scf_Nk2"] = 9
+    material["relax_Nk1"] = 9
+    material["relax_Nk2"] = 9
+    material["nscf_Nk1"] = 9
+    material["nscf_Nk2"] = 9
+    material["Nkband"] = 20
 
     return material
 
@@ -75,19 +75,30 @@ def get_valence(atoms_A, atoms_B):
 
     return valence
 
-def _main():
-    db = ase.db.connect("c2dm.db")
-    MoS2 = tmd.bilayer.cell.get_atoms(db, "MoS2", "H").toatoms()
-    WS2 = tmd.bilayer.cell.get_atoms(db, "WS2", "H").toatoms()
-    latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(MoS2, WS2, 3.0, 0.1, 0.1)
+def get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b):
+    db = ase.db.connect(db_path)
+    atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
+    atoms_B = tmd.bilayer.cell.get_atoms(db, sym_B, "H").toatoms()
+    latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b)
 
     material = base_material()
-    material["eq_latconst"] = eq_latconst
+    material["latconst"] = eq_latconst
     material["latvecs"] = latvecs
     material["cartpos"] = cartpos
 
-    material["weight"] = get_weights(MoS2, WS2)
-    material["valence"] = get_valence(MoS2, WS2)
+    material["pseudo"] = get_pseudo(atoms_A, atoms_B)
+    material["weight"] = get_weights(atoms_A, atoms_B)
+    material["valence"] = get_valence(atoms_A, atoms_B)
+
+    # TODO - additional W90 parameters? (energy windows - or dist of window from E_F)
+
+    return material
+
+def _main():
+    db_path = "c2dm.db"
+    c_sep, d_a, d_b = 3.0, 0.1, 0.1
+
+    material = get_material(db_path, "MoS2", "WS2", c_sep, d_a, d_b)
 
     for k, v in material.items():
         print(k, v)

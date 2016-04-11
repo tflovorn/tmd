@@ -1,7 +1,7 @@
 import os
 import tmd.pwscf.cell as cell
 
-def build(material, calc_name, calc_type):
+def build_qe(material, calc_name, calc_type):
     '''Construct a string which gives the QE input file for the specified
     calculation.
 

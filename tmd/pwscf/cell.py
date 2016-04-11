@@ -47,10 +47,10 @@ def _zbounds(cartpos):
     minval, maxval = None, None
     for at, pos in cartpos:
         z = pos[2]
-        if minval == None or z < min:
+        if minval is None or z < minval:
             minval = z
 
-        if maxval == None or z > max:
+        if maxval is None or z > maxval:
             maxval = z
 
     return minval, maxval
