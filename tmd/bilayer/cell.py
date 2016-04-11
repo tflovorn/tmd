@@ -36,6 +36,11 @@ def h_from_2H(atoms):
     
     return c_S2 - c_S1
 
+def symbols_from_2H(atoms):
+    syms = atoms.get_chemical_symbols()
+    # Consistent M, X, X order.
+    return syms[0], syms[1]
+
 def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     # Choose lattice constant from A.
     a = a_from_2H(atoms_A)
@@ -51,23 +56,35 @@ def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     M_A  = -c_sep/2.0 - h_A/2.0
     X1_A = -c_sep/2.0 - h_A
 
-    c_tot = X2_B - X1_A
+    avec = [1.0, 0.0]
+    bvec = [-0.5, (np.sqrt(3)/2.0)]
 
-    avec = [a, 0.0, 0.0]
-    bvec = [-0.5*a, (np.sqrt(3)/2.0)*a, 0.0]
-    cvec = [0.0, 0.0, c_tot]
-
-    cell = [avec, bvec, cvec]
+    latvecs = np.array([avec, bvec])
 
     # M_A, X1_A, X2_A, M_B, X1_B, X2_B
-    lat_pos = [[0.0, 0.0, M_A / c_tot],
-               [2/3, 2/3, X1_A / c_tot],
-               [2/3, 2/3, X2_A / c_tot],
-               [0.0+d_a, 0.0+d_b, M_B / c_tot],
-               [2/3+d_a, 2/3+d_b, X1_B / c_tot],
-               [2/3+d_a, 2/3+d_b, X2_B / c_tot]]
+    lat_pos = [[0.0, 0.0],
+               [2/3, 2/3],
+               [2/3, 2/3],
+               [0.0+d_a, 0.0+d_b],
+               [2/3+d_a, 2/3+d_b],
+               [2/3+d_a, 2/3+d_b]]
 
-    return cell, lat_pos
+    cartpos_2D = []
+    for pos in lat_pos:
+        cartpos_2D.append(np.dot(pos, latvecs))
+
+    cartpos = []
+    zvals = [M_A, X1_A, X2_A, M_B, X1_B, X2_B]
+
+    sym_M_A, sym_X_A = symbols_from_2H(atoms_A)
+    sym_M_B, sym_X_B = symbols_from_2H(atoms_B)
+    symbols = [sym_M_A, sym_X_A, sym_X_A, sym_M_B, sym_X_B, sym_X_B]
+
+    for pos, z, sym in zip(cartpos_2D, zvals, symbols):
+        cartpos_3D = [pos[0], pos[1], z / a]
+        cartpos.append([sym, cartpos_3D])
+
+    return latvecs, cartpos, a
 
 def _emit_data(atoms):
     # For Atoms type docs, see https://wiki.fysik.dtu.dk/ase/ase/atoms.html
@@ -94,14 +111,10 @@ def _main():
     #    print("h = {} Ang".format(str(h_from_2H(atoms))))
     MoS2 = get_atoms(db, "MoS2", "H").toatoms()
     WS2 = get_atoms(db, "WS2", "H").toatoms()
-    cell, lat_pos = bilayer_setup(MoS2, WS2, 3.0, 0.1, 0.1)
-    print(cell)
-    print(lat_pos)
-
-    D = np.array(cell)
-    for pos in lat_pos:
-        cart = np.dot(D, np.array(pos))
-        print(cart)
+    latvecs, cartpos, eq_latconst = bilayer_setup(MoS2, WS2, 3.0, 0.1, 0.1)
+    print(latvecs)
+    print(cartpos)
+    print(eq_latconst)
 
 if __name__ == "__main__":
     _main()
