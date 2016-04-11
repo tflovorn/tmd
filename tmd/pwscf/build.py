@@ -1,14 +1,14 @@
 import os
 import tmd.pwscf.cell as cell
 
-def build_qe(material, calc_name, calc_type):
+def build_qe(material, calc_type):
     '''Construct a string which gives the QE input file for the specified
     calculation.
 
     material: a dict in the format of the entries in materials.yaml.
-    calc_name: an identifier for the calculation.
     calc_type: one of 'relax', 'scf', 'nscf', 'bands'.
     '''
+    calc_name = material["prefix"]
     calc_vals = ["relax", "scf", "nscf", "bands"]
     if calc_type not in calc_vals:
         raise ValueError("Unsupported calc_type " + calc_type)

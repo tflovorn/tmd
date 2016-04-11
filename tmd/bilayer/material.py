@@ -38,10 +38,10 @@ def base_material():
 def get_weights(atoms_A, atoms_B):
     weights = {}
     for sym, w in zip(atoms_A.get_chemical_symbols(), atoms_A.get_masses()):
-        weights[sym] = w
+        weights[sym] = float(w)
 
     for sym, w in zip(atoms_B.get_chemical_symbols(), atoms_B.get_masses()):
-        weights[sym] = w
+        weights[sym] = float(w)
 
     return weights
 
@@ -82,6 +82,7 @@ def get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b):
     latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b)
 
     material = base_material()
+    material["prefix"] = "{}_{}_da_{:.3f}_db_{:.3f}".format(sym_A, sym_B, d_a, d_b)
     material["latconst"] = eq_latconst
     material["latvecs"] = latvecs
     material["cartpos"] = cartpos

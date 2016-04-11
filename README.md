@@ -1,7 +1,10 @@
-ASE install instructions
-========
+# Dependencies and installation
 
-[ASE](https://wiki.fysik.dtu.dk/ase/index.html)
+Uses pyyaml which requires libyaml:
+
+    sudo apt-get install libyaml-dev
+
+Uses [ASE](https://wiki.fysik.dtu.dk/ase/index.html) and the [2D materials repository](https://cmr.fysik.dtu.dk/c2dm/c2dm.html).
 
 Create a virtualenv:
 
@@ -11,5 +14,8 @@ Create a virtualenv:
 
 Install:
 
-    pip3 install --upgrade numpy
-    pip3 install --upgrade ase
+    python3 setup.py install
+
+or:
+
+    python3 setup.py develop

@@ -57,9 +57,9 @@ def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     X1_A = -c_sep/2.0 - h_A
 
     avec = [1.0, 0.0]
-    bvec = [-0.5, (np.sqrt(3)/2.0)]
+    bvec = [-0.5, float((np.sqrt(3)/2.0))]
 
-    latvecs = np.array([avec, bvec])
+    latvecs = [avec, bvec]
 
     # M_A, X1_A, X2_A, M_B, X1_B, X2_B
     lat_pos = [[0.0, 0.0],
@@ -71,7 +71,7 @@ def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
 
     cartpos_2D = []
     for pos in lat_pos:
-        cartpos_2D.append(np.dot(pos, latvecs))
+        cartpos_2D.append(np.dot(pos, np.array(latvecs)))
 
     cartpos = []
     zvals = [M_A, X1_A, X2_A, M_B, X1_B, X2_B]
@@ -81,10 +81,10 @@ def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     symbols = [sym_M_A, sym_X_A, sym_X_A, sym_M_B, sym_X_B, sym_X_B]
 
     for pos, z, sym in zip(cartpos_2D, zvals, symbols):
-        cartpos_3D = [pos[0], pos[1], z / a]
+        cartpos_3D = [float(pos[0]), float(pos[1]), float(z) / float(a)]
         cartpos.append([sym, cartpos_3D])
 
-    return latvecs, cartpos, a
+    return latvecs, cartpos, float(a)
 
 def _emit_data(atoms):
     # For Atoms type docs, see https://wiki.fysik.dtu.dk/ase/ase/atoms.html
