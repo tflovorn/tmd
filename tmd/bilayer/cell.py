@@ -36,22 +36,22 @@ def h_from_2H(atoms):
     
     return c_S2 - c_S1
 
-def bilayer_setup(atoms_A, atoms_B, c_sep, c_vac, d_a, d_b):
+def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     # Choose lattice constant from A.
     a = a_from_2H(atoms_A)
     # Set up vertical space.
     h_A = h_from_2H(atoms_A)
     h_B = h_from_2H(atoms_B)
 
-    X1_A = c_vac/2.0
-    M_A = X1_A + h_A/2.0
-    X2_A = X1_A + h_A
+    X2_B = c_sep/2.0 + h_B
+    M_B  = c_sep/2.0 + h_B/2.0
+    X1_B = c_sep/2.0
 
-    X1_B = X2_A + c_sep
-    M_B = X1_B + h_B/2.0
-    X2_B = X1_B + h_B
+    X2_A = -c_sep/2.0
+    M_A  = -c_sep/2.0 - h_A/2.0
+    X1_A = -c_sep/2.0 - h_A
 
-    c_tot = X2_B + c_vac/2.0
+    c_tot = X2_B - X1_A
 
     avec = [a, 0.0, 0.0]
     bvec = [-0.5*a, (np.sqrt(3)/2.0)*a, 0.0]
@@ -94,7 +94,7 @@ def _main():
     #    print("h = {} Ang".format(str(h_from_2H(atoms))))
     MoS2 = get_atoms(db, "MoS2", "H").toatoms()
     WS2 = get_atoms(db, "WS2", "H").toatoms()
-    cell, lat_pos = bilayer_setup(MoS2, WS2, 3.0, 20.0, 0.1, 0.1)
+    cell, lat_pos = bilayer_setup(MoS2, WS2, 3.0, 0.1, 0.1)
     print(cell)
     print(lat_pos)
 
