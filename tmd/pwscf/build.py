@@ -1,6 +1,21 @@
 import os
 import tmd.pwscf.cell as cell
 
+def build_bands(material):
+    '''Construct a string which gives the QE input file for bands postprocessing
+    for the given material.
+
+    material: a dict in the format of the entries in materials.yaml.
+    '''
+    bands = [" &bands"]
+    bands.append("   prefix='{}',".format(material["prefix"]))
+    bands.append("   outdir='./',")
+    bands.append("   lsym=.true.,")
+    bands.append("   filband='{}_bands.dat'".format(material["prefix"]))
+    bands.append(" /")
+
+    return "\n".join(bands)
+
 def build_qe(material, calc_type):
     '''Construct a string which gives the QE input file for the specified
     calculation.

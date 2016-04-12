@@ -2,7 +2,7 @@ import numpy as np
 import os
 import yaml
 from tmd.bilayer.material import get_material
-from tmd.pwscf.build import build_qe
+from tmd.pwscf.build import build_qe, build_bands
 
 def dgrid_inputs(db_path, sym_A, sym_B, c_sep, num_d_a, num_d_b):
     d_as = np.linspace(0.0, 1.0, num_d_a, endpoint=False)
@@ -18,6 +18,8 @@ def dgrid_inputs(db_path, sym_A, sym_B, c_sep, num_d_a, num_d_b):
             for calc_type in ["scf", "nscf", "bands"]:
                 qe_input = build_qe(material, calc_type)
                 inputs[(d_a, d_b)][calc_type] = qe_input
+
+            inputs[(d_a, d_b)]["bands_post"] = build_bands(material)
 
     return inputs
 
@@ -48,6 +50,7 @@ def _write_dv(base_path, dv):
     scf_path = os.path.join(wannier_dir_path, "{}.scf.in".format(prefix))
     nscf_path = os.path.join(wannier_dir_path, "{}.nscf.in".format(prefix))
     bands_path = os.path.join(bands_dir_path, "{}.bands.in".format(prefix))
+    bands_post_path = os.path.join(bands_dir_path, "{}.bands_post.in".format(prefix))
 
     with open(scf_path, 'w') as fp:
         fp.write(dv["scf"])
@@ -57,6 +60,9 @@ def _write_dv(base_path, dv):
 
     with open(bands_path, 'w') as fp:
         fp.write(dv["bands"])
+
+    with open(bands_post_path, 'w') as fp:
+        fp.write(dv["bands_post"])
 
 def _main():
     db_path = "c2dm.db"
