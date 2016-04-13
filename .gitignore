@@ -2,3 +2,4 @@ tmd_env
 tmd.egg-info
 *.swp
 __pycache__
+*.png

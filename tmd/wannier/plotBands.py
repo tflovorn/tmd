@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from tmd.wannier.bands import Hk, Hk_recip
 from tmd.wannier.extractHr import extractHr
 from tmd.pwscf.extractQEBands import extractQEBands
+from tmd.pwscf.parseScf import alat_from_scf, latVecs_from_scf
 
 # Switch to size eigenvalue intensity markers based on component values
 # (instead of only using color to denote component value).
@@ -166,9 +167,9 @@ def _vec_equal_upto(u, v, eps):
             return False
     return True
 
-def plotDFTBands(dft_bands_filepath, outpath, show=False, spin=None):
+def plotDFTBands(dft_bands_filepath, outpath, minE=None, maxE=None, show=False, spin=None):
     nb, nks, qe_bands = extractQEBands(dft_bands_filepath)
-    plotBands(qe_bands, None, None, None, None, None, outpath, show)
+    plotBands(qe_bands, None, None, None, minE, maxE, outpath, show)
 
 def _interpolateKs(klist, fineness):
     '''Return a list of k-points which linearly interpolates between the
@@ -217,30 +218,6 @@ def _getHks(Hr, Hr_ks, alat, latVecs, plot_evecs=False):
 
     return Hk_ys, Hk_evecs
 
-def readLatVecs(filePath):
-    '''Extract and return a list oflattice vectors from the file at filePath.
-
-    The file should have the format:
-
-        alat
-        a_x a_y a_z
-        b_x b_y b_z
-        c_x c_y c_z
-
-    The units of alat and the components of the lattice vectors are both
-    distances (i.e. A or bohr; components are not given in units of alat).
-    '''
-    fp = open(filePath, 'r')
-    lines = fp.readlines()
-    fp.close()
-
-    alat = float(lines[0].strip())
-    lvs = []
-    for i in range(3):
-        vec = list(map(float, lines[1+i].strip().split()))
-        lvs.append(vec)
-    return alat, lvs
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot QE and Wannier bands.")
     parser.add_argument('QE_path', type=str,
@@ -248,8 +225,8 @@ if __name__ == "__main__":
     parser.add_argument('outPath', type=str, help="Path for output file.")
     parser.add_argument('--Hr_path', type=str,
             help="Path to Wannier Hamiltonian file.", default=None)
-    parser.add_argument('--latVecs_path', type=str,
-            help="Path to lattice vectors file.", default=None)
+    parser.add_argument('--scf_path', type=str,
+            help="Path to QE scf output file.", default=None)
     parser.add_argument('--minE', type=float, help="Minimal energy to plot.", default=None)
     parser.add_argument('--maxE', type=float, help="Maximum energy to plot.", default=None)
     parser.add_argument('--show', help="Show plot before writing file.",
@@ -261,7 +238,8 @@ if __name__ == "__main__":
         print("QE eigenvalues loaded.")
         Hr = extractHr(args.Hr_path)
         print("Wannier Hamiltonian loaded.")
-        alat, latVecs = readLatVecs(args.latVecs_path)
+        alat = alat_from_scf(args.scf_path)
+        latVecs = latVecs_from_scf(args.scf_path)
         plotBands(evalsQE, Hr, alat, latVecs, args.minE, args.maxE, args.outPath, args.show)
     else:
-        plotDFTBands(args.QE_path, args.outPath, args.show)
+        plotDFTBands(args.QE_path, args.outPath, args.minE, args.maxE, args.show)

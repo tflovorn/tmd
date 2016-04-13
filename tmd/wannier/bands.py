@@ -21,7 +21,7 @@ def Hk(k, Hr, latVecs):
         degen = value[1]
         ra, rb, rc = key[0], key[1], key[2]
         # Initialize result matrix if necessary.
-        if result == None:
+        if result is None:
             nb = Hr_r.shape[0]
             result = matlib.zeros((nb, nb), dtype=np.complex128)
 
@@ -62,7 +62,7 @@ def Hk_recip(k, Hr):
         degen = value[1]
         ra, rb, rc = key[0], key[1], key[2]
         # Initialize result matrix if necessary.
-        if result == None:
+        if result is None:
             nb = Hr_r.shape[0]
             result = matlib.zeros((nb, nb), dtype=np.complex128)
 
@@ -94,7 +94,7 @@ def dHk_dk(k, Hr, latVecs):
         degen = value[1]
         ra, rb, rc = key[0], key[1], key[2]
         # Initialize result matrix if necessary.
-        if result == None:
+        if result is None:
             nb = Hr_r.shape[0]
             result = []
             for cartIndex in range(3):

@@ -2,12 +2,12 @@ import unittest
 import numpy as np
 import numpy.matlib as matlib
 from numpy.linalg import inv
-from wannierHamiltonian.extractHr import extractHr
-from wannierHamiltonian.bands import Hk, dHk_dk
+from tmd.wannier.extractHr import extractHr
+from tmd.wannier.bands import Hk, dHk_dk
 
 class TestHk(unittest.TestCase):
     def test_HkFe(self):
-        Hr = extractHr("Fe_hr_test.dat")
+        Hr = extractHr("test_data/Fe_hr_test.dat")
         k0 = (0.0, 0.0, 0.0)
         latVecs = _latVecs()
         Hk_0 = Hk(k0, Hr, latVecs)
@@ -18,7 +18,7 @@ class TestHk(unittest.TestCase):
 
 class TestdHkdk(unittest.TestCase):
     def test_dHkdkFe(self):
-        Hr = extractHr("Fe_hr_test.dat")
+        Hr = extractHr("test_data/Fe_hr_test.dat")
         k0 = (0.0, 0.0, 0.0)
         latVecs = _latVecs()
 

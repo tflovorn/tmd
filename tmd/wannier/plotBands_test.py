@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from wannierHamiltonian.plotBands import _interpolateKs
+from tmd.wannier.plotBands import _interpolateKs
 
 class TestInterpolateKs(unittest.TestCase):
     def test_InterpolateKs(self):
