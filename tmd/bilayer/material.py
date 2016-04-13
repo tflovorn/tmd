@@ -35,54 +35,71 @@ def base_material():
 
     return material
 
-def get_weights(atoms_A, atoms_B):
+def get_weights(atoms_A, atoms_B=None):
     weights = {}
-    for sym, w in zip(atoms_A.get_chemical_symbols(), atoms_A.get_masses()):
-        weights[sym] = float(w)
+    syms, masses = atoms_A.get_chemical_symbols(), atoms_A.get_masses()
+    if atoms_B != None:
+        syms.extend(atoms_B.get_chemical_symbols())
+        masses.extend(atoms_B.get_masses())
 
-    for sym, w in zip(atoms_B.get_chemical_symbols(), atoms_B.get_masses()):
+    for sym, w in zip(syms, masses):
         weights[sym] = float(w)
 
     return weights
 
-def get_pseudo(atoms_A, atoms_B):
+def get_pseudo(atoms_A, atoms_B=None):
     pseudo = {}
-    for sym in atoms_A.get_chemical_symbols():
-        pseudo_name = "{}_r.oncvpsp.upf".format(sym)
-        pseudo[sym] = pseudo_name
+    syms = atoms_A.get_chemical_symbols()
+    if atoms_B != None:
+        syms.extend(atoms_A.get_chemical_symbols())
 
-    for sym in atoms_B.get_chemical_symbols():
+    for sym in syms:
         pseudo_name = "{}_r.oncvpsp.upf".format(sym)
         pseudo[sym] = pseudo_name
 
     return pseudo
 
-def get_valence(atoms_A, atoms_B):
+def get_valence(atoms_A, atoms_B=None):
     Ms = ["Mo", "W"]
     Xs = ["S", "Se", "Te"]
 
-    # total = nspin*(2*9 + 4*6)
-    valence = {"total": 2*(2*9 + 4*6)} # or 4*9?
+    # total = nspin*(nlayers*9 + 2*nlayers*6)
+    total = 0
 
     syms = atoms_A.get_chemical_symbols()
-    syms.extend(atoms_B.get_chemical_symbols())
+    if atoms_B != None:
+        syms.extend(atoms_B.get_chemical_symbols())
 
+    valence = {}
     for sym in syms:
         if sym in Ms:
+            total += 18
             valence[sym] = ["s", "p", "d"]
         else:
+            total += 12
             valence[sym] = ["s", "p"]
+
+    valence["total"] = total
 
     return valence
 
-def get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b):
+def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None):
     db = ase.db.connect(db_path)
     atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
-    atoms_B = tmd.bilayer.cell.get_atoms(db, sym_B, "H").toatoms()
+
+    atoms_B = None
+    if sym_B != None:
+        atoms_B = tmd.bilayer.cell.get_atoms(db, sym_B, "H").toatoms()
+
     latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b)
 
     material = base_material()
-    material["prefix"] = "{}_{}_da_{:.3f}_db_{:.3f}".format(sym_A, sym_B, d_a, d_b)
+
+    if sym_B is None:
+        material["prefix"] = "{}".format(sym_A)
+    else:
+        material["prefix"] = "{}_{}_da_{:.3f}_db_{:.3f}".format(sym_A, sym_B, d_a, d_b)
+
     material["latconst"] = eq_latconst
     material["latvecs"] = latvecs
     material["cartpos"] = cartpos

@@ -4,9 +4,13 @@ import yaml
 from tmd.bilayer.material import get_material
 from tmd.pwscf.build import build_qe, build_bands
 
-def dgrid_inputs(db_path, sym_A, sym_B, c_sep, num_d_a, num_d_b):
-    d_as = np.linspace(0.0, 1.0, num_d_a, endpoint=False)
-    d_bs = np.linspace(0.0, 1.0, num_d_b, endpoint=False)
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None):
+    if sym_B is None:
+        d_as = [0.0]
+        d_bs = [0.0]
+    else:
+        d_as = np.linspace(0.0, 1.0, num_d_a, endpoint=False)
+        d_bs = np.linspace(0.0, 1.0, num_d_b, endpoint=False)
 
     inputs = {}
 
@@ -28,6 +32,9 @@ def write_dgrid(base_path, dgrid):
         _write_dv(base_path, dv)
 
 def _write_dv(base_path, dv):
+    if not os.path.exists(base_path):
+        os.mkdir(base_path)
+
     prefix = dv["material"]["prefix"]
     
     d_dir_path = os.path.join(base_path, prefix)
@@ -66,11 +73,15 @@ def _write_dv(base_path, dv):
 
 def _main():
     db_path = "c2dm.db"
-    c_sep = 3.0
 
-    dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2)
+    #c_sep = 3.0
+    #dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2)
+    #base_path = os.path.expandvars("$HOME/tmd_run/MoS2_WS2")
+    #write_dgrid(base_path, dgrid)
 
-    base_path = os.path.expandvars("$HOME/tmd_run/MoS2_WS2")
+    c_sep = None
+    dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, None, None)
+    base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
     write_dgrid(base_path, dgrid)
     
     #for dk, dv in dgrid.items():

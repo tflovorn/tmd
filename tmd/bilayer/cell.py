@@ -41,11 +41,43 @@ def symbols_from_2H(atoms):
     # Consistent M, X, X order.
     return syms[0], syms[1]
 
-def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
+def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
     # Choose lattice constant from A.
     a = a_from_2H(atoms_A)
-    # Set up vertical space.
+
     h_A = h_from_2H(atoms_A)
+
+    avec = [1.0, 0.0]
+    bvec = [-0.5, float((np.sqrt(3)/2.0))]
+    latvecs = [avec, bvec]
+
+    # Monolayer special case.
+    if atoms_B == None:
+        X2_A = h_A/2.0
+        M_A  = 0.0
+        X1_A = -h_A/2.0
+
+        lat_pos = [[0.0, 0.0],
+                   [2/3, 2/3],
+                   [2/3, 2/3]]
+
+        cartpos_2D = []
+        for pos in lat_pos:
+            cartpos_2D.append(np.dot(pos, np.array(latvecs)))
+
+        cartpos = []
+        zvals = [M_A, X1_A, X2_A]
+
+        sym_M_A, sym_X_A = symbols_from_2H(atoms_A)
+        symbols = [sym_M_A, sym_X_A, sym_X_A]
+
+        for pos, z, sym in zip(cartpos_2D, zvals, symbols):
+            cartpos_3D = [float(pos[0]), float(pos[1]), float(z) / float(a)]
+            cartpos.append([sym, cartpos_3D])
+
+        return latvecs, cartpos, float(a)
+
+    # Bilayer.
     h_B = h_from_2H(atoms_B)
 
     X2_B = c_sep/2.0 + h_B
@@ -55,11 +87,6 @@ def bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b):
     X2_A = -c_sep/2.0
     M_A  = -c_sep/2.0 - h_A/2.0
     X1_A = -c_sep/2.0 - h_A
-
-    avec = [1.0, 0.0]
-    bvec = [-0.5, float((np.sqrt(3)/2.0))]
-
-    latvecs = [avec, bvec]
 
     # M_A, X1_A, X2_A, M_B, X1_B, X2_B
     lat_pos = [[0.0, 0.0],
