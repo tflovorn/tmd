@@ -1,8 +1,10 @@
 import numpy as np
 import os
 import yaml
+from copy import deepcopy
 from tmd.bilayer.material import get_material
 from tmd.pwscf.build import build_qe, build_bands
+from tmd.queue.queuefile import write_queuefile
 
 def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None):
     if sym_B is None:
@@ -71,6 +73,23 @@ def _write_dv(base_path, dv):
     with open(bands_post_path, 'w') as fp:
         fp.write(dv["bands_post"])
 
+def write_dgrid_queuefiles(base_path, dgrid, config):
+    for dk, dv in dgrid.items():
+        _write_dv_queuefile(base_path, dv, config)
+
+def _write_dv_queuefile(base_path, dv, config):
+    config["base_path"] = base_path
+
+    prefix = dv["material"]["prefix"]
+    config["prefix"] = prefix
+
+    wan_setup_config = deepcopy(config)
+    wan_setup_config["calc"] = "wan_setup"
+
+    write_queuefile(wan_setup_config)
+
+    # TODO - run_wan for w90 (need to make w90 input with windows)
+
 def _main():
     db_path = "c2dm.db"
 
@@ -83,6 +102,9 @@ def _main():
     dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, None, None)
     base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
     write_dgrid(base_path, dgrid)
+
+    config = {"machine": "__local__", "wannier": False}
+    write_dgrid_queuefiles(base_path, dgrid, config)
     
     #for dk, dv in dgrid.items():
     #    for k, v in dv.items():
