@@ -12,7 +12,7 @@ def build_bands(material):
     bands.append("   outdir='./',")
     bands.append("   lsym=.true.,")
     bands.append("   filband='{}_bands.dat'".format(material["prefix"]))
-    bands.append(" /")
+    bands.append(" /\n")
 
     return "\n".join(bands)
 
@@ -65,7 +65,7 @@ def _join(xs):
             ret = x
         elif x != None:
             ret = "\n".join([ret, x])
-    return ret
+    return ret + "\n"
 
 def wannier_num_bands(valence):
     '''Number of bands to use in nscf/bands calculation for use with Wannier90.
