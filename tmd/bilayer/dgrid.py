@@ -110,7 +110,7 @@ def _main():
 
     #config = {"machine": "__local__", "wannier": False}
     config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "development",
-            "hours": 1, "minutes": 0, "wannier": False}
+            "hours": 1, "minutes": 0, "wannier": False, "project": "A-ph9"}
     write_dgrid_queuefiles(base_path, dgrid, config)
     
     #for dk, dv in dgrid.items():

@@ -45,6 +45,7 @@ def _write_queuefile_ls5(config):
     qf.append("#SBATCH -t {}".format(duration))
     qf.append("#SBATCH -N {}".format(str(config["nodes"])))
     qf.append("#SBATCH -n {}".format(str(config["cores"])))
+    qf.append("#SBATCH -A {}".format(config["project"]))
     qf.append("")
     qf.append("export OMP_NUM_THREADS=1")
 
