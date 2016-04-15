@@ -5,6 +5,7 @@ from copy import deepcopy
 from tmd.bilayer.material import get_material
 from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands
+from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile
 
 def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
@@ -27,6 +28,9 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=N
                 inputs[(d_a, d_b)][calc_type] = qe_input
 
             inputs[(d_a, d_b)]["bands_post"] = build_bands(material)
+            wan_up, wan_down = Winfile(material)
+            # TODO handle spin-polarized
+            inputs[(d_a, d_b)]["wannier"] = wan_up
 
     return inputs
 
@@ -73,6 +77,11 @@ def _write_dv(base_path, dv):
 
     with open(bands_post_path, 'w') as fp:
         fp.write(dv["bands_post"])
+
+    wannier_path = os.path.join(wannier_dir_path, "{}.win".format(prefix))
+
+    with open(wannier_path, 'w') as fp:
+        fp.write(dv["wannier"])
 
 def write_dgrid_queuefiles(base_path, dgrid, config):
     for dk, dv in dgrid.items():
