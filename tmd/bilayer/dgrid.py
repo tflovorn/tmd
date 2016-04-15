@@ -94,11 +94,12 @@ def _write_dv_queuefile(base_path, dv, config):
 def _main():
     base = _base_dir()
     db_path = os.path.join(base, "c2dm.db")
+    gconf = global_config()
 
     c_sep = 3.0
     soc = True
     dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2, soc)
-    base_path = os.path.expandvars("$HOME/tmd_run/MoS2_WS2")
+    base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 
     #c_sep, num_d_a, num_d_b = None, None, None
