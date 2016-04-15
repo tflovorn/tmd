@@ -47,8 +47,9 @@ def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
 
     h_A = h_from_2H(atoms_A)
 
-    avec = [1.0, 0.0]
-    bvec = [-0.5, float((np.sqrt(3)/2.0))]
+    # Setyawan and Curtarolo 2010 basis
+    avec = [1/2, -float(np.sqrt(3)/2)]
+    bvec = [1/2, float(np.sqrt(3)/2)]
     latvecs = [avec, bvec]
 
     # Monolayer special case.
@@ -58,8 +59,8 @@ def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
         X1_A = -h_A/2.0
 
         lat_pos = [[0.0, 0.0],
-                   [2/3, 2/3],
-                   [2/3, 2/3]]
+                   [1/3, 2/3],
+                   [1/3, 2/3]]
 
         cartpos_2D = []
         for pos in lat_pos:
@@ -90,11 +91,11 @@ def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
 
     # M_A, X1_A, X2_A, M_B, X1_B, X2_B
     lat_pos = [[0.0, 0.0],
-               [2/3, 2/3],
-               [2/3, 2/3],
+               [1/3, 2/3],
+               [1/3, 2/3],
                [0.0+d_a, 0.0+d_b],
-               [2/3+d_a, 2/3+d_b],
-               [2/3+d_a, 2/3+d_b]]
+               [1/3+d_a, 2/3+d_b],
+               [1/3+d_a, 2/3+d_b]]
 
     cartpos_2D = []
     for pos in lat_pos:

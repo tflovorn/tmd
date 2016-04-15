@@ -13,13 +13,15 @@ def base_material(soc):
 
     material["soc"] = soc
 
-    material["band_path"] = [["K", [2/3, 1/3]], ["\\Gamma", [0.0, 0.0]],
-            ["M", [0.5, 0.0]], ["K", [2/3, 1/3]]]
+    #material["band_path"] = [["K", [2/3, 1/3]], ["\\Gamma", [0.0, 0.0]],
+    #        ["M", [1/2, 0.0]], ["K", [2/3, 1/3]]]
+    material["band_path"] = [["\\Gamma", [0.0, 0.0]], ["M", [1/2, 0.0]], 
+            ["K", [1/3, 1/3]], ["\\Gamma", [0.0, 0.0]]]
 
     material["vacuum_dist"] = 20.0
 
     material["ecutwfc"] = 60.0
-    material["ecutrho"] = 200.0
+    material["ecutrho"] = 240.0
     material["degauss"] = 0.02
 
     material["scf_conv_thr"] = 1e-8
@@ -36,7 +38,7 @@ def base_material(soc):
     material["relax_Nk2"] = 9
     material["nscf_Nk1"] = 9
     material["nscf_Nk2"] = 9
-    material["Nkband"] = 20
+    material["Nkband"] = 60
 
     return material
 
