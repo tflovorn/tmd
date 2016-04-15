@@ -50,15 +50,15 @@ def _write_queuefile_ls5(config):
     qf.append("export OMP_NUM_THREADS=1")
 
     if config["calc"] == "wan_setup":
-        qf.append("ibrun pw.x -input {}.scf.in > scf.out".format(prefix))
+        qf.append("ibrun tacc_affinity pw.x -input {}.scf.in > scf.out".format(prefix))
         qf.append("cd ..")
         qf.append("cp -r wannier/* bands")
         qf.append("cd bands")
-        qf.append("ibrun pw.x -input {}.bands.in > bands.out".format(prefix))
-        qf.append("ibrun bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("ibrun tacc_affinity pw.x -input {}.bands.in > bands.out".format(prefix))
+        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
         if config["wannier"]:
             qf.append("cd ../wannier")
-            qf.append("ibrun pw.x -input {}.nscf.in > nscf.out".format(prefix))
+            qf.append("ibrun tacc_affinity pw.x -input {}.nscf.in > nscf.out".format(prefix))
             #TODO - w90 -pp and pw2wan
             pass
     else:
