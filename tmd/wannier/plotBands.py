@@ -48,7 +48,7 @@ def plotBands(evalsDFT, Hr, alat, latVecs, minE, maxE, outpath, show=False, symL
     # interpolating between k-points in evalsDFT.
     Hr_ks, Hr_xs, Hr_ys, DFT_xs, Hr_evecs = None, None, None, None, None
     Hr_ks_per_DFT_k = 1
-    if Hr != None:
+    if Hr is not None:
         Hr_ks_per_DFT_k = 10
         Hr_ks = _interpolateKs(DFT_ks, Hr_ks_per_DFT_k)
         Hr_xs = range(len(Hr_ks))
@@ -67,7 +67,7 @@ def plotBands(evalsDFT, Hr, alat, latVecs, minE, maxE, outpath, show=False, symL
 
     # Make plot.
     if not plot_evecs:
-        if Hr != None:
+        if Hr is not None:
             for Hr_evs in Hr_ys:
                 plt.plot(Hr_xs, Hr_evs, 'r')
 
@@ -122,7 +122,7 @@ def _set_fermi_energy_line(fermi_energy):
 
 def _set_sympoints_ticks(symList, DFT_ks, Hr, Hr_ks_per_DFT_k):
     # Lines and labels for symmetry points.
-    if symList != None:
+    if symList is not None:
         nk_per_sym = (len(DFT_ks) - 1) / (len(symList) - 1)
         sym_xs = None
         if Hr != None:
@@ -233,7 +233,7 @@ if __name__ == "__main__":
                         action='store_true')
     args = parser.parse_args()
 
-    if args.Hr_path != None:
+    if args.Hr_path is not None:
         nbnd, nks, evalsQE = extractQEBands(args.QE_path)
         print("QE eigenvalues loaded.")
         Hr = extractHr(args.Hr_path)
