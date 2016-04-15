@@ -1,12 +1,18 @@
 import os
 import stat
 import tmd.pwscf.config
+from tmd.queue.queue_util import global_config
 
 def write_queuefile(config):
     machine = config["machine"]
 
+    gconf = global_config()
+
     if machine == "__local__":
-        _write_queuefile_local(config)
+        if gconf['allow_local']:
+            _write_queuefile_local(config)
+        else:
+            raise ValueError("Local operation disallowed in global_config.yaml")
     else:
         pass
 
@@ -30,7 +36,7 @@ def _write_queuefile_local(config):
         qf.append("mpirun bands.x < {}.bands_post.in > bands_post.out".format(prefix))
         if config["wannier"]:
             qf.append("cd ../wannier")
-            qf.append("mpirun pw.x < {}.nscf.in > nscf.out".format(prefix))
+            qf.append("mpirun pw.x -input {}.nscf.in > nscf.out".format(prefix))
             #TODO - w90 -pp and pw2wan
             pass
     else:

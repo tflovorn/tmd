@@ -3,6 +3,7 @@ import os
 import yaml
 from copy import deepcopy
 from tmd.bilayer.material import get_material
+from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands
 from tmd.queue.queuefile import write_queuefile
 
@@ -91,7 +92,8 @@ def _write_dv_queuefile(base_path, dv, config):
     # TODO - run_wan for w90 (need to make w90 input with windows)
 
 def _main():
-    db_path = "c2dm.db"
+    base = _base_dir()
+    db_path = os.path.join(base, "c2dm.db")
 
     c_sep = 3.0
     soc = True

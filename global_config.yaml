@@ -1,0 +1,2 @@
+allow_local: False
+work_base: "$SCRATCH/tmd_run"

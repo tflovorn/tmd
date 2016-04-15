@@ -1,5 +1,7 @@
+import os
 import numpy as np
 import ase.db
+from tmd.bilayer.bilayer_util import _base_dir, global_config
 
 def get_atoms(db, formula, phase):
     system_list = list(db.select('formula={},xc=PBE,phase={}'.format(formula, phase)))
@@ -128,7 +130,9 @@ def _emit_data(atoms):
     print(atoms.get_scaled_positions()) # positions in direct lattice coordinates
 
 def _main():
-    db = ase.db.connect("c2dm.db")
+    base = _base_dir()
+    db_path = os.path.join(base, "c2dm.db")
+    db = ase.db.connect(db_path)
     #ws2 = get_atoms(db, "WS2", "H").toatoms()
     #_emit_data(ws2)
     #compounds = ["MoS2", "MoSe2", "MoTe2", "WS2", "WSe2", "WTe2"]

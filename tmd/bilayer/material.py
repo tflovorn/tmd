@@ -1,5 +1,14 @@
+import os
+import inspect
 import ase.db
 import tmd.bilayer.cell
+from tmd.bilayer.bilayer_util import _base_dir, global_config
+
+def _base_dir():
+    frame = inspect.getfile(inspect.currentframe())
+    this_dir = os.path.dirname(os.path.abspath(frame))
+    base_dir = os.path.join(this_dir, "..", "..")
+    return os.path.normpath(base_dir)
 
 def base_material(soc):
     # The following are values which are independent of the bilayer material.
@@ -7,9 +16,9 @@ def base_material(soc):
     #    eq_latconst, latvecs, cartpos, pseudo, weight, valence
     material = {}
     if soc:
-        material["pseudo_dir"] = "$HOME/tmd/pseudo/soc"
+        material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "soc")
     else:
-        material["pseudo_dir"] = "$HOME/tmd/pseudo/no_soc"
+        material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "no_soc")
 
     material["soc"] = soc
 
@@ -132,7 +141,8 @@ def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None, soc
     return material
 
 def _main():
-    db_path = "c2dm.db"
+    base = _base_dir()
+    db_path = os.path.join(base, "c2dm.db")
     c_sep, d_a, d_b = 3.0, 0.1, 0.1
 
     material = get_material(db_path, "MoS2", "WS2", c_sep, d_a, d_b)
