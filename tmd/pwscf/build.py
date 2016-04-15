@@ -92,11 +92,14 @@ def _control(calc_type, pseudo_dir, etot_conv_thr, forc_conv_thr, calc_name):
     return "\n".join(nl)
 
 def _system(calc_type, material):
+    bohr_in_A = 1.889726164
+    latconst_bohr = bohr_in_A * material["latconst"]
+
     num_atoms, num_atom_types = _atom_types(material["cartpos"])
     num_bands = wannier_num_bands(material["valence"])
 
     nl = [" &system"]
-    nl.append("    ibrav=0,celldm(1)={},nat={},ntyp={},".format(str(material["latconst"]),
+    nl.append("    ibrav=0,celldm(1)={},nat={},ntyp={},".format(str(latconst_bohr),
         str(num_atoms), str(num_atom_types)))
     nl.append("    ecutwfc={},".format(str(material["ecutwfc"])))
     nl.append("    ecutrho={},".format(str(material["ecutrho"])))
