@@ -103,8 +103,10 @@ def _system(calc_type, material):
         str(num_atoms), str(num_atom_types)))
     nl.append("    ecutwfc={},".format(str(material["ecutwfc"])))
     nl.append("    ecutrho={},".format(str(material["ecutrho"])))
-    nl.append("    noncolin=.true.,")
-    nl.append("    lspinorb=.true.,")
+
+    if material["soc"]:
+        nl.append("    noncolin=.true.,")
+        nl.append("    lspinorb=.true.,")
 
     if calc_type in ['scf', 'relax']:
         nl.append("    occupations='tetrahedra'")
@@ -121,7 +123,7 @@ def _atom_types(cartpos):
     atom_types = set()
     for at, pos in cartpos:
         atom_types.add(at)
-    
+
     num_atom_types = len(atom_types)
     return num_atoms, num_atom_types
 

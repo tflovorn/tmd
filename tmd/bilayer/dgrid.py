@@ -6,7 +6,7 @@ from tmd.bilayer.material import get_material
 from tmd.pwscf.build import build_qe, build_bands
 from tmd.queue.queuefile import write_queuefile
 
-def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None):
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
     if sym_B is None:
         d_as = [0.0]
         d_bs = [0.0]
@@ -18,7 +18,7 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=N
 
     for d_a in d_as:
         for d_b in d_bs:
-            material = get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b)
+            material = get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b, soc)
 
             inputs[(d_a, d_b)] = {"material": material}
             for calc_type in ["scf", "nscf", "bands"]:
@@ -93,15 +93,17 @@ def _write_dv_queuefile(base_path, dv, config):
 def _main():
     db_path = "c2dm.db"
 
-    #c_sep = 3.0
-    #dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2)
-    #base_path = os.path.expandvars("$HOME/tmd_run/MoS2_WS2")
-    #write_dgrid(base_path, dgrid)
-
-    c_sep = None
-    dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, None, None)
-    base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
+    c_sep = 3.0
+    soc = True
+    dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2, soc)
+    base_path = os.path.expandvars("$HOME/tmd_run/MoS2_WS2")
     write_dgrid(base_path, dgrid)
+
+    #c_sep, num_d_a, num_d_b = None, None, None
+    #soc = False
+    #dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, num_d_a, num_d_b, soc)
+    #base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
+    #write_dgrid(base_path, dgrid)
 
     config = {"machine": "__local__", "wannier": False}
     write_dgrid_queuefiles(base_path, dgrid, config)

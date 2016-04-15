@@ -1,12 +1,17 @@
 import ase.db
 import tmd.bilayer.cell
 
-def base_material():
+def base_material(soc):
     # The following are values which are independent of the bilayer material.
     # To complete the dataset, must fix:
     #    eq_latconst, latvecs, cartpos, pseudo, weight, valence
     material = {}
-    material["pseudo_dir"] = "$HOME/tmd/pseudo"
+    if soc:
+        material["pseudo_dir"] = "$HOME/tmd/pseudo/soc"
+    else:
+        material["pseudo_dir"] = "$HOME/tmd/pseudo/no_soc"
+
+    material["soc"] = soc
 
     material["band_path"] = [["K", [2/3, 1/3]], ["\\Gamma", [0.0, 0.0]],
             ["M", [0.5, 0.0]], ["K", [2/3, 1/3]]]
@@ -37,53 +42,65 @@ def base_material():
 
 def get_weights(atoms_A, atoms_B=None):
     weights = {}
-    syms, masses = atoms_A.get_chemical_symbols(), atoms_A.get_masses()
+    syms, masses = list(atoms_A.get_chemical_symbols()), list(atoms_A.get_masses())
     if atoms_B != None:
-        syms.extend(atoms_B.get_chemical_symbols())
-        masses.extend(atoms_B.get_masses())
+        syms.extend(list(atoms_B.get_chemical_symbols()))
+        masses.extend(list(atoms_B.get_masses()))
 
     for sym, w in zip(syms, masses):
         weights[sym] = float(w)
 
     return weights
 
-def get_pseudo(atoms_A, atoms_B=None):
+def get_pseudo(atoms_A, atoms_B=None, soc=True):
     pseudo = {}
-    syms = atoms_A.get_chemical_symbols()
+    syms = list(atoms_A.get_chemical_symbols())
     if atoms_B != None:
-        syms.extend(atoms_A.get_chemical_symbols())
+        syms.extend(list(atoms_B.get_chemical_symbols()))
 
     for sym in syms:
-        pseudo_name = "{}_r.oncvpsp.upf".format(sym)
+        if soc:
+            pseudo_name = "{}_r.oncvpsp.upf".format(sym)
+        else:
+            pseudo_name = "{}.oncvpsp.upf".format(sym)
+
         pseudo[sym] = pseudo_name
 
     return pseudo
 
-def get_valence(atoms_A, atoms_B=None):
+def get_valence(atoms_A, atoms_B=None, soc=True):
     Ms = ["Mo", "W"]
     Xs = ["S", "Se", "Te"]
 
     # total = nspin*(nlayers*9 + 2*nlayers*6)
     total = 0
 
-    syms = atoms_A.get_chemical_symbols()
+    syms = list(atoms_A.get_chemical_symbols())
     if atoms_B != None:
-        syms.extend(atoms_B.get_chemical_symbols())
+        syms.extend(list(atoms_B.get_chemical_symbols()))
 
     valence = {}
     for sym in syms:
         if sym in Ms:
-            total += 18
+            if soc:
+                total += 18
+            else:
+                total += 9
+
             valence[sym] = ["s", "p", "d"]
         else:
-            total += 12
+            if soc:
+                total += 12
+            else:
+                total += 6
+
             valence[sym] = ["s", "p"]
 
     valence["total"] = total
 
     return valence
 
-def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None):
+def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None, soc=True):
     db = ase.db.connect(db_path)
     atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
 
@@ -93,7 +110,7 @@ def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None):
 
     latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b)
 
-    material = base_material()
+    material = base_material(soc)
 
     if sym_B is None:
         material["prefix"] = "{}".format(sym_A)
@@ -104,9 +121,9 @@ def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None):
     material["latvecs"] = latvecs
     material["cartpos"] = cartpos
 
-    material["pseudo"] = get_pseudo(atoms_A, atoms_B)
+    material["pseudo"] = get_pseudo(atoms_A, atoms_B, soc)
     material["weight"] = get_weights(atoms_A, atoms_B)
-    material["valence"] = get_valence(atoms_A, atoms_B)
+    material["valence"] = get_valence(atoms_A, atoms_B, soc)
 
     # TODO - additional W90 parameters? (energy windows - or dist of window from E_F)
 
