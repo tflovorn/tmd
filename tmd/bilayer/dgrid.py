@@ -107,7 +107,9 @@ def _main():
     #base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
     #write_dgrid(base_path, dgrid)
 
-    config = {"machine": "__local__", "wannier": False}
+    #config = {"machine": "__local__", "wannier": False}
+    config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "development",
+            "hours": 1, "minutes": 0, "wannier": False}
     write_dgrid_queuefiles(base_path, dgrid, config)
     
     #for dk, dv in dgrid.items():

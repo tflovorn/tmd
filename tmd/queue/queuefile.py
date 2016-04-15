@@ -13,14 +13,64 @@ def write_queuefile(config):
             _write_queuefile_local(config)
         else:
             raise ValueError("Local operation disallowed in global_config.yaml")
+    elif machine == "ls5":
+        _write_queuefile_ls5(config)
     else:
-        pass
+        raise ValueError("Unrecognized config['machine'] value")
 
 def get_qf_path(config):
     qf_name = "run_{}".format(config["calc"])
     qf_path = os.path.join(config["base_path"], config["prefix"], "wannier", qf_name)
 
     return qf_path
+
+def _ls_format_duration(hours, minutes):
+    hstr = str(hours)
+    if minutes < 10:
+        mstr = "0{}".format(str(minutes))
+    else:
+        mstr = str(minutes)
+
+    return "{}:{}:00".format(hstr, mstr)
+
+def _write_queuefile_ls5(config):
+    duration = _ls_format_duration(config["hours"], config["minutes"])
+    prefix = config["prefix"]
+
+    qf = ["#!/bin/bash"]
+    qf.append("#SBATCH -p {}".format(config["queue"]))
+    qf.append("#SBATCH -J {}".format(prefix))
+    #qf.append("#SBATCH -o {}.out".format(prefix))
+    qf.append("#SBATCH -e {}.err".format(prefix))
+    qf.append("#SBATCH -t {}".format(duration))
+    qf.append("#SBATCH -N {}".format(str(config["nodes"])))
+    qf.append("#SBATCH -n {}".format(str(config["cores"])))
+    qf.append("")
+    qf.append("export OMP_NUM_THREADS=1")
+
+    if config["calc"] == "wan_setup":
+        qf.append("ibrun pw.x -input {}.scf.in > scf.out".format(prefix))
+        qf.append("cd ..")
+        qf.append("cp -r wannier/* bands")
+        qf.append("cd bands")
+        qf.append("ibrun pw.x -input {}.bands.in > bands.out".format(prefix))
+        qf.append("ibrun bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        if config["wannier"]:
+            qf.append("cd ../wannier")
+            qf.append("ibrun pw.x -input {}.nscf.in > nscf.out".format(prefix))
+            #TODO - w90 -pp and pw2wan
+            pass
+    else:
+        # TODO - run wannier90
+        raise ValueError("unrecognized calc")
+
+    qf_path = get_qf_path(config)
+
+    with open(qf_path, 'w') as fp:
+        qf_str = "\n".join(qf)
+        fp.write(qf_str)
+
+    os.chmod(qf_path, stat.S_IRWXU)
 
 def _write_queuefile_local(config):
     qf_path = get_qf_path(config)
