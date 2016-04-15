@@ -10,7 +10,6 @@ def build_bands(material):
     bands = [" &bands"]
     bands.append("   prefix='{}',".format(material["prefix"]))
     bands.append("   outdir='./',")
-    bands.append("   lsym=.true.,")
     bands.append("   filband='{}_bands.dat'".format(material["prefix"]))
     bands.append(" /\n")
 
