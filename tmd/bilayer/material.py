@@ -45,7 +45,7 @@ def base_material(soc):
     material["relax_Nk2"] = 9
     material["nscf_Nk1"] = 9
     material["nscf_Nk2"] = 9
-    material["Nkband"] = 60
+    material["Nkband"] = 20
 
     return material
 
