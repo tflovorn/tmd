@@ -4,7 +4,7 @@ import yaml
 from copy import deepcopy
 from tmd.bilayer.material import get_material
 from tmd.bilayer.bilayer_util import _base_dir, global_config
-from tmd.pwscf.build import build_qe, build_bands
+from tmd.pwscf.build import build_qe, build_bands, build_pw2wan
 from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile
 
@@ -28,8 +28,9 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=N
                 inputs[(d_a, d_b)][calc_type] = qe_input
 
             inputs[(d_a, d_b)]["bands_post"] = build_bands(material)
+            inputs[(d_a, d_b)]["pw2wan"] = build_pw2wan(material)
             wan_up, wan_down = Winfile(material)
-            # TODO handle spin-polarized
+            # TODO handle collinear spin-polarized case
             inputs[(d_a, d_b)]["wannier"] = wan_up
 
     return inputs
@@ -65,6 +66,7 @@ def _write_dv(base_path, dv):
     nscf_path = os.path.join(wannier_dir_path, "{}.nscf.in".format(prefix))
     bands_path = os.path.join(bands_dir_path, "{}.bands.in".format(prefix))
     bands_post_path = os.path.join(bands_dir_path, "{}.bands_post.in".format(prefix))
+    pw2wan_path = os.path.join(wannier_dir_path, "{}.pw2wan.in".format(prefix))
 
     with open(scf_path, 'w') as fp:
         fp.write(dv["scf"])
@@ -77,6 +79,9 @@ def _write_dv(base_path, dv):
 
     with open(bands_post_path, 'w') as fp:
         fp.write(dv["bands_post"])
+
+    with open(pw2wan_path, 'w') as fp:
+        fp.write(dv["pw2wan"])
 
     wannier_path = os.path.join(wannier_dir_path, "{}.win".format(prefix))
 
@@ -95,10 +100,11 @@ def _write_dv_queuefile(base_path, dv, config):
 
     wan_setup_config = deepcopy(config)
     wan_setup_config["calc"] = "wan_setup"
-
     write_queuefile(wan_setup_config)
 
-    # TODO - run_wan for w90 (need to make w90 input with windows)
+    wan_run_config = deepcopy(config)
+    wan_run_config["calc"] = "wan_run"
+    write_queuefile(wan_run_config)
 
 def _main():
     base = _base_dir()
@@ -112,20 +118,16 @@ def _main():
     write_dgrid(base_path, dgrid)
 
     #c_sep, num_d_a, num_d_b = None, None, None
-    #soc = False
+    #soc = True
     #dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, num_d_a, num_d_b, soc)
-    #base_path = os.path.expandvars("$HOME/tmd_run/MoS2")
+    #base_path = os.path.expandvars(gconf["work_base"])
     #write_dgrid(base_path, dgrid)
 
-    #config = {"machine": "__local__", "wannier": False}
+    #config = {"machine": "__local__", "wannier": True}
+    #config = {"machine": "__local__", "wannier": True, "__local_mpi_cmd__": "mpirun"}
     config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "development",
-            "hours": 1, "minutes": 0, "wannier": False, "project": "A-ph9"}
+            "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9"}
     write_dgrid_queuefiles(base_path, dgrid, config)
     
-    #for dk, dv in dgrid.items():
-    #    for k, v in dv.items():
-    #        print(dk, k)
-    #        print(v)
-
 if __name__ == "__main__":
     _main()

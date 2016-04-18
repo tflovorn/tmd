@@ -1,6 +1,26 @@
 import os
 import tmd.pwscf.cell as cell
 
+def build_pw2wan(material):
+    pw2wan = [" &inputpp"]
+    pw2wan.append("   outdir='./',")
+    pw2wan.append("   prefix='{}',".format(material["prefix"]))
+    pw2wan.append("   write_mmn=.true.,")
+    pw2wan.append("   write_amn=.true.,")
+
+    if material["soc"]:
+        pw2wan.append("   write_spn=.true.,")
+    else:
+        pw2wan.append("   write_spn=.false.,")
+
+    # TODO - support collinear spin-polarized case
+
+    pw2wan.append("   write_unk=.false.,")
+    pw2wan.append("   seedname='{}'".format(material["prefix"]))
+    pw2wan.append(" /\n")
+
+    return "\n".join(pw2wan)
+
 def build_bands(material):
     '''Construct a string which gives the QE input file for bands postprocessing
     for the given material.

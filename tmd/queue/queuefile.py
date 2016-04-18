@@ -59,11 +59,12 @@ def _write_queuefile_ls5(config):
         if config["wannier"]:
             qf.append("cd ../wannier")
             qf.append("ibrun tacc_affinity pw.x -input {}.nscf.in > nscf.out".format(prefix))
-            #TODO - w90 -pp and pw2wan
-            pass
+            qf.append("wannier90.x -pp {}".format(prefix))
+            qf.append("ibrun tacc_affinity pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(prefix))
+    elif config["calc"] == "wan_run":
+        qf.append("wannier90.x {}".format(prefix))
     else:
-        # TODO - run wannier90
-        raise ValueError("unrecognized calc")
+        raise ValueError("unrecognized config['calc'] ('wan_setup' and 'wan_run' supported)")
 
     qf_path = get_qf_path(config)
 
@@ -76,23 +77,28 @@ def _write_queuefile_ls5(config):
 def _write_queuefile_local(config):
     qf_path = get_qf_path(config)
     prefix = config["prefix"]
+    if "__local_mpi_cmd__" in config:
+        mpi = "{} ".format(config["__local_mpi_cmd__"])
+    else:
+        mpi = ""
 
     qf = ["#!/bin/bash"]
     if config["calc"] == "wan_setup":
-        qf.append("mpirun pw.x < {}.scf.in > scf.out".format(prefix))
+        qf.append("{}pw.x < {}.scf.in > scf.out".format(mpi, prefix))
         qf.append("cd ..")
         qf.append("cp -r wannier/* bands")
         qf.append("cd bands")
-        qf.append("mpirun pw.x < {}.bands.in > bands.out".format(prefix))
-        qf.append("mpirun bands.x < {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("{}pw.x < {}.bands.in > bands.out".format(mpi, prefix))
+        qf.append("{}bands.x < {}.bands_post.in > bands_post.out".format(mpi, prefix))
         if config["wannier"]:
             qf.append("cd ../wannier")
-            qf.append("mpirun pw.x -input {}.nscf.in > nscf.out".format(prefix))
-            #TODO - w90 -pp and pw2wan
-            pass
+            qf.append("{}pw.x -input {}.nscf.in > nscf.out".format(mpi, prefix))
+            qf.append("wannier90.x -pp {}".format(prefix))
+            qf.append("{}pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(mpi, prefix))
+    elif config["calc"] == "wan_run":
+        qf.append("wannier90.x {}".format(prefix))
     else:
-        # TODO - run wannier90
-        pass
+        raise ValueError("unrecognized config['calc'] ('wan_setup' and 'wan_run' supported)")
 
     with open(qf_path, 'w') as fp:
         qf_str = "\n".join(qf)

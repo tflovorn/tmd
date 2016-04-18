@@ -22,8 +22,6 @@ def base_material(soc):
 
     material["soc"] = soc
 
-    #material["band_path"] = [["K", [2/3, 1/3]], ["\\Gamma", [0.0, 0.0]],
-    #        ["M", [1/2, 0.0]], ["K", [2/3, 1/3]]]
     material["band_path"] = [["\\Gamma", [0.0, 0.0]], ["M", [1/2, 0.0]], 
             ["K", [1/3, 1/3]], ["\\Gamma", [0.0, 0.0]]]
 
@@ -98,14 +96,14 @@ def get_valence(atoms_A, atoms_B=None, soc=True):
             else:
                 total += 9
 
-            valence[sym] = ["s", "p", "d"]
+            valence[sym] = ["s", "p", "d"] # currently ignored - all used
         else:
             if soc:
-                total += 12
+                total += 18
             else:
-                total += 6
+                total += 9
 
-            valence[sym] = ["s", "p"]
+            valence[sym] = ["s", "p", "d"] # currently ignored - all used
 
     valence["total"] = total
 
