@@ -6,7 +6,7 @@ from tmd.bilayer.material import get_material
 from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands, build_pw2wan
 from tmd.wannier.build import Winfile
-from tmd.queue.queuefile import write_queuefile
+from tmd.queue.queuefile import write_queuefile, write_launcherfiles
 
 def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
     if sym_B is None:
@@ -89,8 +89,15 @@ def _write_dv(base_path, dv):
         fp.write(dv["wannier"])
 
 def write_dgrid_queuefiles(base_path, dgrid, config):
+    prefix_list = []
     for dk, dv in dgrid.items():
         _write_dv_queuefile(base_path, dv, config)
+        prefix_list.append(dv["material"]["prefix"])
+
+    launcher_config = deepcopy(config)
+    launcher_config["prefix_list"] = prefix_list
+    launcher_config["calc"] = "wan_run"
+    write_launcherfiles(launcher_config)
 
 def _write_dv_queuefile(base_path, dv, config):
     config["base_path"] = base_path
@@ -111,22 +118,29 @@ def _main():
     db_path = os.path.join(base, "c2dm.db")
     gconf = global_config()
 
-    c_sep = 3.0
+    #c_sep, num_d_a, num_d_b = 3.0, 2, 2
+    c_sep, num_d_a, num_d_b = None, None, None
     soc = True
-    dgrid = dgrid_inputs(db_path, "MoS2", "WS2", c_sep, 2, 2, soc)
+    #symA, symB = "MoS2", "WS2"
+    symA, symB = "MoS2", None
+    dgrid = dgrid_inputs(db_path, symA, symB, c_sep, num_d_a, num_d_b, soc)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 
-    #c_sep, num_d_a, num_d_b = None, None, None
-    #soc = True
-    #dgrid = dgrid_inputs(db_path, "MoS2", None, c_sep, num_d_a, num_d_b, soc)
-    #base_path = os.path.expandvars(gconf["work_base"])
-    #write_dgrid(base_path, dgrid)
-
     #config = {"machine": "__local__", "wannier": True}
     #config = {"machine": "__local__", "wannier": True, "__local_mpi_cmd__": "mpirun"}
+    if symA is not None and symB is not None:
+        global_prefix = "{}_{}".format(symA, symB)
+    elif symB is None:
+        global_prefix = symA
+    elif symA is None:
+        global_prefix = symB
+    else:
+        raise ValueError("symA and symB are None")
+
     config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "development",
-            "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9"}
+            "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
+            "global_prefix": global_prefix}
     write_dgrid_queuefiles(base_path, dgrid, config)
     
 if __name__ == "__main__":

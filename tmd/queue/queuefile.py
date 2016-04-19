@@ -18,6 +18,22 @@ def write_queuefile(config):
     else:
         raise ValueError("Unrecognized config['machine'] value")
 
+def write_launcherfiles(config):
+    machine = config["machine"]
+
+    gconf = global_config()
+
+    if machine == "__local__":
+        if gconf['allow_local']:
+            #TODO?
+            raise ValueError("launcher not implemented for local operation")
+        else:
+            raise ValueError("Local operation disallowed in global_config.yaml")
+    elif machine == "ls5":
+        _write_launcherfiles_ls5(config)
+    else:
+        raise ValueError("Unrecognized config['machine'] value")
+
 def get_qf_path(config):
     qf_name = "run_{}".format(config["calc"])
     qf_path = os.path.join(config["base_path"], config["prefix"], "wannier", qf_name)
@@ -38,18 +54,17 @@ def _write_queuefile_ls5(config):
     prefix = config["prefix"]
 
     qf = ["#!/bin/bash"]
-    qf.append("#SBATCH -p {}".format(config["queue"]))
-    qf.append("#SBATCH -J {}".format(prefix))
-    #qf.append("#SBATCH -o {}.out".format(prefix))
-    qf.append("#SBATCH -e {}.err".format(prefix))
-    qf.append("#SBATCH -t {}".format(duration))
-    qf.append("#SBATCH -N {}".format(str(config["nodes"])))
-    qf.append("#SBATCH -n {}".format(str(config["cores"])))
-    qf.append("#SBATCH -A {}".format(config["project"]))
-    qf.append("")
-    qf.append("export OMP_NUM_THREADS=1")
-
     if config["calc"] == "wan_setup":
+        qf.append("#SBATCH -p {}".format(config["queue"]))
+        qf.append("#SBATCH -J {}".format(prefix))
+        #qf.append("#SBATCH -o {}.out".format(prefix))
+        qf.append("#SBATCH -e {}.err".format(prefix))
+        qf.append("#SBATCH -t {}".format(duration))
+        qf.append("#SBATCH -N {}".format(str(config["nodes"])))
+        qf.append("#SBATCH -n {}".format(str(config["cores"])))
+        qf.append("#SBATCH -A {}".format(config["project"]))
+        qf.append("")
+        qf.append("export OMP_NUM_THREADS=1")
         qf.append("ibrun tacc_affinity pw.x -input {}.scf.in > scf.out".format(prefix))
         qf.append("cd ..")
         qf.append("cp -r wannier/* bands")
@@ -73,6 +88,59 @@ def _write_queuefile_ls5(config):
         fp.write(qf_str)
 
     os.chmod(qf_path, stat.S_IRWXU)
+
+def _write_launcherfiles_ls5(config):
+    _write_launcher_qf_ls5(config)
+    _write_launcher_job_ls5(config)
+
+def _write_launcher_qf_ls5(config):
+    duration = _ls_format_duration(config["hours"], config["minutes"])
+    prefix = config["global_prefix"]
+
+    qf = ["#!/bin/bash"]
+    qf.append("#SBATCH -p {}".format(config["queue"]))
+    qf.append("#SBATCH -J {}".format(prefix))
+    qf.append("#SBATCH -o {}.out".format(prefix))
+    qf.append("#SBATCH -e {}.err".format(prefix))
+    qf.append("#SBATCH -t {}".format(duration))
+    qf.append("#SBATCH -N {}".format(str(config["nodes"])))
+    qf.append("#SBATCH -n {}".format(str(config["cores"])))
+    qf.append("#SBATCH -A {}".format(config["project"]))
+    qf.append("")
+    qf.append("export OMP_NUM_THREADS=1")
+    qf.append("export LAUNCHER_PLUGIN_DIR=$LAUNCHER_DIR/plugins")
+    qf.append("export LAUNCHER_RMI=SLURM")
+    qf.append("export LAUNCHER_JOB_FILE={}_jobfile".format(prefix))
+    qf.append("")
+    qf.append("$LAUNCHER_DIR/paramrun")
+
+    qf_prefix = os.path.join(config["base_path"], config["global_prefix"])
+    qf_path = "{}_launcher".format(qf_prefix)
+
+    with open(qf_path, 'w') as fp:
+        qf_str = "\n".join(qf) + "\n"
+        fp.write(qf_str)
+
+    os.chmod(qf_path, stat.S_IRWXU)
+
+def _write_launcher_job_ls5(config):
+    prefix_list = config["prefix_list"]
+    global_prefix = config["global_prefix"]
+
+    jf = []
+    if config["calc"] == "wan_run":
+        for prefix in prefix_list:
+            jf.append("{}/wannier/run_wan_run".format(prefix))
+    else:
+        raise ValueError("unrecognized config['calc']")
+
+    jf_path = os.path.join(config["base_path"], "{}_jobfile".format(global_prefix))
+
+    with open(jf_path, 'w') as fp:
+        jf_str = "\n".join(jf) + "\n"
+        fp.write(jf_str)
+
+    os.chmod(jf_path, stat.S_IRWXU)
 
 def _write_queuefile_local(config):
     qf_path = get_qf_path(config)
