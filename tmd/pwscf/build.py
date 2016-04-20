@@ -99,6 +99,7 @@ def _control(calc_type, pseudo_dir, etot_conv_thr, forc_conv_thr, calc_name):
     nl.append("    calculation='{}',".format(calc_type))
     nl.append("    restart_mode='from_scratch',")
     nl.append("    disk_io='low',")
+    nl.append("    wf_collect=.true.,")
     nl.append("    pseudo_dir='{}',".format(pseudo_dir))
     nl.append("    outdir='./',")
 
