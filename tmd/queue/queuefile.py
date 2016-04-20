@@ -77,7 +77,8 @@ def _write_queuefile_ls5(config):
             qf.append("wannier90.x -pp {}".format(prefix))
             qf.append("ibrun tacc_affinity pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(prefix))
     elif config["calc"] == "wan_run":
-        qf.append("wannier90.x {}".format(prefix))
+        wan_dir = os.path.join(config["base_path"], config["prefix"], "wannier")
+        qf.append("cd {}; wannier90.x {}".format(wan_dir, prefix))
     else:
         raise ValueError("unrecognized config['calc'] ('wan_setup' and 'wan_run' supported)")
 
