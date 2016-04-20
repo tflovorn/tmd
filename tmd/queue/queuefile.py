@@ -54,27 +54,24 @@ def _write_group_queuefile(config, group, group_id):
     prefix = config["prefix"]
 
     qf = ["#!/bin/bash"]
-    if config["calc"] == "wan_setup":
-        qf.append("#SBATCH -p {}".format(config["queue"]))
-        qf.append("#SBATCH -J {}".format(prefix))
-        #qf.append("#SBATCH -o {}.out".format(prefix))
-        qf.append("#SBATCH -e {}.err".format(prefix))
-        qf.append("#SBATCH -t {}".format(duration))
-        qf.append("#SBATCH -N {}".format(str(config["nodes"])))
-        qf.append("#SBATCH -n {}".format(str(config["cores"])))
-        qf.append("#SBATCH -A {}".format(config["project"]))
-        qf.append("")
-        qf.append("export OMP_NUM_THREADS=1")
+    qf.append("#SBATCH -p {}".format(config["queue"]))
+    qf.append("#SBATCH -J {}".format(prefix))
+    #qf.append("#SBATCH -o {}.out".format(prefix))
+    qf.append("#SBATCH -e {}.err".format(prefix))
+    qf.append("#SBATCH -t {}".format(duration))
+    qf.append("#SBATCH -N {}".format(str(config["nodes"])))
+    qf.append("#SBATCH -n {}".format(str(config["cores"])))
+    qf.append("#SBATCH -A {}".format(config["project"]))
+    qf.append("")
+    qf.append("export OMP_NUM_THREADS=1")
 
-        for prefix in group:
-            wan_path = os.path.join(config["base_path"], prefix, "wannier")
-            qf.append("cd {}".format(wan_path))
-            qf.append("./run_wan_setup")
-    else:
-        raise ValueError("unsupported config['calc']")
+    for prefix in group:
+        wan_path = os.path.join(config["base_path"], prefix, "wannier")
+        qf.append("cd {}".format(wan_path))
+        qf.append("./run_{}".format(config["calc"]))
 
     all_groups_path = os.path.join(config["base_path"], config["global_prefix"])
-    qf_path = "{}_{}".format(all_groups_path, str(group_id))
+    qf_path = "{}_{}_{}".format(all_groups_path, config["calc"], str(group_id))
 
     with open(qf_path, 'w') as fp:
         qf_str = "\n".join(qf)
@@ -102,17 +99,21 @@ def _write_queuefile_ls5(config):
 
     qf = ["#!/bin/bash"]
     if config["calc"] == "wan_setup":
-        qf.append("ibrun tacc_affinity pw.x -input {}.scf.in > scf.out".format(prefix))
+        nk = str(config["nodes"])
+        qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.scf.in > scf.out".format(nk, prefix))
         qf.append("cd ..")
         qf.append("cp -r wannier/* bands")
         qf.append("cd bands")
-        qf.append("ibrun tacc_affinity pw.x -input {}.bands.in > bands.out".format(prefix))
-        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.bands.in > bands.out".format(nk, prefix))
         if config["wannier"]:
             qf.append("cd ../wannier")
-            qf.append("ibrun tacc_affinity pw.x -input {}.nscf.in > nscf.out".format(prefix))
-            qf.append("wannier90.x -pp {}".format(prefix))
-            qf.append("ibrun tacc_affinity pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(prefix))
+            qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.nscf.in > nscf.out".format(nk, prefix))
+    elif config["calc"] == "pw_post":
+        qf.append("cd ../bands")
+        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("cd ../wannier")
+        qf.append("wannier90.x -pp {}".format(prefix))
+        qf.append("ibrun tacc_affinity pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(prefix))
     elif config["calc"] == "wan_run":
         wan_dir = os.path.join(config["base_path"], config["prefix"], "wannier")
         qf.append("cd {}; wannier90.x {}".format(wan_dir, prefix))
@@ -122,7 +123,7 @@ def _write_queuefile_ls5(config):
     qf_path = get_qf_path(config)
 
     with open(qf_path, 'w') as fp:
-        qf_str = "\n".join(qf)
+        qf_str = "\n".join(qf) + "\n"
         fp.write(qf_str)
 
     os.chmod(qf_path, stat.S_IRWXU)

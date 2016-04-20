@@ -42,7 +42,13 @@ def _enqueue_ls5(config):
         os.chdir(cwd)
     elif config["calc"] == "wan_setup_group":
         os.chdir(config["base_path"])
-        qf = "{}_{}".format(config["global_prefix"], config["prefix"])
+        qf = "{}_wan_setup_{}".format(config["global_prefix"], config["prefix"])
+        qf_path = os.path.join(config["base_path"], qf)
+        subprocess.call(["sbatch", qf_path])
+        os.chdir(cwd)
+    elif config["calc"] == "pw_post_group":
+        os.chdir(config["base_path"])
+        qf = "{}_pw_post_{}".format(config["global_prefix"], config["prefix"])
         qf_path = os.path.join(config["base_path"], qf)
         subprocess.call(["sbatch", qf_path])
         os.chdir(cwd)

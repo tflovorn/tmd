@@ -96,16 +96,42 @@ def write_dgrid_queuefiles(base_path, dgrid, config):
         prefix_list.append(dv["material"]["prefix"])
 
     prefix_groups = group_jobs(config, prefix_list)
+    write_prefix_groups(base_path, config["global_prefix"], prefix_groups)
+
     config["base_path"] = base_path
-    group_config = deepcopy(config)
-    group_config["calc"] = "wan_setup"
-    write_job_group_files(group_config, prefix_groups)
+    wan_setup_group_config = deepcopy(config)
+    wan_setup_group_config["calc"] = "wan_setup"
+    write_job_group_files(wan_setup_group_config, prefix_groups)
+
+    pw_post_group_config = deepcopy(config)
+    pw_post_group_config["calc"] = "pw_post"
+    pw_post_group_config["nodes"] = 1
+    pw_post_group_config["cores"] = config["pw_post_cores"]
+    write_job_group_files(pw_post_group_config, prefix_groups)
 
     launcher_config = deepcopy(config)
     launcher_config["prefix_list"] = prefix_list
     launcher_config["calc"] = "wan_run"
     write_launcherfiles(launcher_config)
 
+    return prefix_groups
+
+def _prefix_groups_path(base_path, global_prefix):
+    groups_path = os.path.join(base_path, "{}_prefix_groups.yaml".format(global_prefix))
+    return groups_path
+
+def write_prefix_groups(base_path, global_prefix, prefix_groups):
+    groups_path = _prefix_groups_path(base_path, global_prefix)
+    groups_str = yaml.dump(prefix_groups)
+    with open(groups_path, 'w') as fp:
+        fp.write(groups_str)
+
+def get_prefix_groups(base_path, global_prefix):
+    groups_path = _prefix_groups_path(base_path, global_prefix)
+    with open(groups_path, 'r') as fp:
+        groups_str = fp.read()
+        
+    prefix_groups = yaml.load(groups_str)
     return prefix_groups
 
 def group_jobs(config, prefix_list):
@@ -131,6 +157,12 @@ def _write_dv_queuefile(base_path, dv, config):
     wan_setup_config["calc"] = "wan_setup"
     write_queuefile(wan_setup_config)
 
+    pw_post_config = deepcopy(config)
+    pw_post_config["calc"] = "pw_post"
+    pw_post_config["nodes"] = 1
+    pw_post_config["cores"] = config["pw_post_cores"]
+    write_queuefile(pw_post_config)
+
     wan_run_config = deepcopy(config)
     wan_run_config["calc"] = "wan_run"
     write_queuefile(wan_run_config)
@@ -149,11 +181,11 @@ def _main():
     db_path = os.path.join(base, "c2dm.db")
     gconf = global_config()
 
-    c_sep, num_d_a, num_d_b = 3.0, 2, 2
-    #c_sep, num_d_a, num_d_b = None, None, None
+    #c_sep, num_d_a, num_d_b = 3.0, 2, 2
+    c_sep, num_d_a, num_d_b = None, None, None
     soc = True
-    symA, symB = "MoS2", "WS2"
-    #symA, symB = "MoS2", None
+    #symA, symB = "MoS2", "WS2"
+    symA, symB = "MoS2", None
     dgrid = dgrid_inputs(db_path, symA, symB, c_sep, num_d_a, num_d_b, soc)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
@@ -169,9 +201,12 @@ def _main():
     else:
         raise ValueError("symA and symB are None")
 
-    config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "normal",
+    num_nodes = 4
+    num_cores = 24*num_nodes
+    config = {"machine": "ls5", "cores": num_cores, "nodes": num_nodes, "queue": "normal",
             "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
-            "global_prefix": global_prefix, "max_jobs": 24}
+            "global_prefix": global_prefix, "max_jobs": 24,
+            "pw_post_cores": 24}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
     submit_dgrid_wan_setup(base_path, config, prefix_groups)
