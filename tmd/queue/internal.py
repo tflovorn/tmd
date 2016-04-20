@@ -40,5 +40,11 @@ def _enqueue_ls5(config):
         os.chdir(qf_dir)
         subprocess.call(["sbatch", qf_path])
         os.chdir(cwd)
+    elif config["calc"] == "wan_setup_group":
+        os.chdir(config["base_path"])
+        qf = "{}_{}".format(config["global_prefix"], config["prefix"])
+        qf_path = os.path.join(config["base_path"], qf)
+        subprocess.call(["sbatch", qf_path])
+        os.chdir(cwd)
     else:
         raise ValueError("unsupported config['calc'] for enqueue")

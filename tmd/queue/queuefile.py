@@ -20,7 +20,6 @@ def write_queuefile(config):
 
 def write_launcherfiles(config):
     machine = config["machine"]
-
     gconf = global_config()
 
     if machine == "__local__":
@@ -33,6 +32,55 @@ def write_launcherfiles(config):
         _write_launcherfiles_ls5(config)
     else:
         raise ValueError("Unrecognized config['machine'] value")
+
+def write_job_group_files(config, prefix_groups):
+    machine = config["machine"]
+    gconf = global_config()
+
+    if machine == "__local__":
+        if gconf['allow_local']:
+            #TODO?
+            raise ValueError("launcher not implemented for local operation")
+        else:
+            raise ValueError("Local operation disallowed in global_config.yaml")
+    elif machine == "ls5":
+        for group_id, group in enumerate(prefix_groups):
+            _write_group_queuefile(config, group, group_id)
+    else:
+        raise ValueError("Unrecognized config['machine'] value")
+
+def _write_group_queuefile(config, group, group_id):
+    duration = _ls_format_duration(config["hours"], config["minutes"])
+    prefix = config["prefix"]
+
+    qf = ["#!/bin/bash"]
+    if config["calc"] == "wan_setup":
+        qf.append("#SBATCH -p {}".format(config["queue"]))
+        qf.append("#SBATCH -J {}".format(prefix))
+        #qf.append("#SBATCH -o {}.out".format(prefix))
+        qf.append("#SBATCH -e {}.err".format(prefix))
+        qf.append("#SBATCH -t {}".format(duration))
+        qf.append("#SBATCH -N {}".format(str(config["nodes"])))
+        qf.append("#SBATCH -n {}".format(str(config["cores"])))
+        qf.append("#SBATCH -A {}".format(config["project"]))
+        qf.append("")
+        qf.append("export OMP_NUM_THREADS=1")
+
+        for prefix in group:
+            wan_path = os.path.join(config["base_path"], prefix, "wannier")
+            qf.append("cd {}".format(wan_path))
+            qf.append("./run_wan_setup")
+    else:
+        raise ValueError("unsupported config['calc']")
+
+    all_groups_path = os.path.join(config["base_path"], config["global_prefix"])
+    qf_path = "{}_{}".format(all_groups_path, str(group_id))
+
+    with open(qf_path, 'w') as fp:
+        qf_str = "\n".join(qf)
+        fp.write(qf_str)
+
+    os.chmod(qf_path, stat.S_IRWXU)
 
 def get_qf_path(config):
     qf_name = "run_{}".format(config["calc"])
@@ -50,21 +98,10 @@ def _ls_format_duration(hours, minutes):
     return "{}:{}:00".format(hstr, mstr)
 
 def _write_queuefile_ls5(config):
-    duration = _ls_format_duration(config["hours"], config["minutes"])
     prefix = config["prefix"]
 
     qf = ["#!/bin/bash"]
     if config["calc"] == "wan_setup":
-        qf.append("#SBATCH -p {}".format(config["queue"]))
-        qf.append("#SBATCH -J {}".format(prefix))
-        #qf.append("#SBATCH -o {}.out".format(prefix))
-        qf.append("#SBATCH -e {}.err".format(prefix))
-        qf.append("#SBATCH -t {}".format(duration))
-        qf.append("#SBATCH -N {}".format(str(config["nodes"])))
-        qf.append("#SBATCH -n {}".format(str(config["cores"])))
-        qf.append("#SBATCH -A {}".format(config["project"]))
-        qf.append("")
-        qf.append("export OMP_NUM_THREADS=1")
         qf.append("ibrun tacc_affinity pw.x -input {}.scf.in > scf.out".format(prefix))
         qf.append("cd ..")
         qf.append("cp -r wannier/* bands")

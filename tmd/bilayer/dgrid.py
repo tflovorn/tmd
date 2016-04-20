@@ -6,7 +6,7 @@ from tmd.bilayer.material import get_material
 from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands, build_pw2wan
 from tmd.wannier.build import Winfile
-from tmd.queue.queuefile import write_queuefile, write_launcherfiles
+from tmd.queue.queuefile import write_queuefile, write_launcherfiles, write_job_group_files
 from tmd.queue.internal import enqueue
 
 def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
@@ -95,10 +95,31 @@ def write_dgrid_queuefiles(base_path, dgrid, config):
         _write_dv_queuefile(base_path, dv, config)
         prefix_list.append(dv["material"]["prefix"])
 
+    prefix_groups = group_jobs(config, prefix_list)
+    config["base_path"] = base_path
+    group_config = deepcopy(config)
+    group_config["calc"] = "wan_setup"
+    write_job_group_files(group_config, prefix_groups)
+
     launcher_config = deepcopy(config)
     launcher_config["prefix_list"] = prefix_list
     launcher_config["calc"] = "wan_run"
     write_launcherfiles(launcher_config)
+
+    return prefix_groups
+
+def group_jobs(config, prefix_list):
+    max_jobs = config["max_jobs"]
+
+    groups = []
+    for i, prefix in enumerate(prefix_list):
+        group_id = i % max_jobs
+        if len(groups) <= group_id:
+            groups.append([])
+
+        groups[group_id].append(prefix)
+
+    return groups
 
 def _write_dv_queuefile(base_path, dv, config):
     config["base_path"] = base_path
@@ -114,14 +135,13 @@ def _write_dv_queuefile(base_path, dv, config):
     wan_run_config["calc"] = "wan_run"
     write_queuefile(wan_run_config)
 
-def submit_dgrid_wan_setup(base_path, dgrid, config):
+def submit_dgrid_wan_setup(base_path, config, prefix_groups):
     config["base_path"] = base_path
 
-    for dk, dv in dgrid.items():
-        prefix = dv["material"]["prefix"]
+    for i in range(len(prefix_groups)):
         dv_config = deepcopy(config)
-        dv_config["prefix"] = prefix
-        dv_config["calc"] = "wan_setup"
+        dv_config["calc"] = "wan_setup_group"
+        dv_config["prefix"] = str(i)
         enqueue(dv_config)
 
 def _main():
@@ -149,12 +169,12 @@ def _main():
     else:
         raise ValueError("symA and symB are None")
 
-    config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "development",
+    config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "normal",
             "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
-            "global_prefix": global_prefix}
-    write_dgrid_queuefiles(base_path, dgrid, config)
+            "global_prefix": global_prefix, "max_jobs": 24}
+    prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
-    #submit_dgrid_wan_setup(base_path, dgrid, config)
+    submit_dgrid_wan_setup(base_path, config, prefix_groups)
     
 if __name__ == "__main__":
     _main()
