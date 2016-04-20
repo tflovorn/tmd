@@ -92,18 +92,18 @@ def get_valence(atoms_A, atoms_B=None, soc=True):
     for sym in syms:
         if sym in Ms:
             if soc:
-                total += 18
+                total += 10
             else:
-                total += 9
+                total += 5
 
-            valence[sym] = ["s", "p", "d"] # currently ignored - all used
+            valence[sym] = ["d"]
         else:
             if soc:
-                total += 18
+                total += 6
             else:
-                total += 9
+                total += 3
 
-            valence[sym] = ["s", "p", "d"] # currently ignored - all used
+            valence[sym] = ["p"]
 
     valence["total"] = total
 

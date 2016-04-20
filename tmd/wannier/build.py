@@ -32,37 +32,49 @@ def Disentanglement():
     lines.append("")
     return lines
 
-def Projections(latpos, soc, maxl):
-    lstrs = {"0": "l=0", "1": "l=0;l=1", "2": "l=0;l=1;l=2"}
+def Projections(latpos, soc, valence):
     atoms = []
     for at, pos in latpos:
         atoms.append(at)
 
-    distinct_at, distinct_maxl = _distinct_atoms(atoms, maxl)
+    distinct_at = _distinct_atoms(atoms)
 
     lines = []
     if soc:
         lines.append("spinors = T")
 
     lines.append("begin projections")
-    for at_index, at in enumerate(distinct_at):
-        at_proj = lstrs[distinct_maxl[at_index]]
-        lines.append("{}: {}".format(at, at_proj))
+    for at in distinct_at:
+        at_proj = _proj_line(at, valence[at])
+        lines.append(at_proj)
     lines.append("end projections")
     lines.append("")
     return lines
 
-def _distinct_atoms(atoms, maxl):
-    distinct_at, distinct_maxl = [], []
+def _proj_line(at, valence):
+    line = "{}: ".format(at)
+    for val_index, this_val in enumerate(valence):
+        if val_index != 0:
+            line += ";"
+
+        if this_val == "s":
+            line += "l=0"
+        elif this_val == "p":
+            line += "l=1"
+        elif this_val == "d":
+            line += "l=2"
+        else:
+            raise ValueError("unrecognized valence component")
+
+    return line
+
+def _distinct_atoms(atoms):
+    distinct_at = []
     for at_index, at in enumerate(atoms):
         if at not in distinct_at:
             distinct_at.append(at)
-            if maxl != None:
-                distinct_maxl.append(maxl[at_index])
-            else:
-                distinct_maxl.append("2")
 
-    return distinct_at, distinct_maxl
+    return distinct_at
 
 def Spin(spin_polarized):
     if not spin_polarized:
@@ -126,14 +138,11 @@ def _get_num_wann(maxl):
             raise ValueError("unexpected value in maxl")
     return num
 
-def Winfile(material, maxl=None):
+def Winfile(material):
     spin_polarized = False # TODO - handle case with spin polarization on and soc off
     soc = material["soc"]
     if soc and spin_polarized:
         raise ValueError("Cannot specify both spin_polarized and soc.")
-
-    if maxl != None:
-        num_wann = _get_num_wann(maxl)
 
     nbnd = wannier_num_bands(material["valence"])
     num_wann = material["valence"]["total"]
@@ -146,7 +155,7 @@ def Winfile(material, maxl=None):
     alat = material["latconst"]
     abohr = 0.52917721
 
-    lines.extend(Projections(latpos, soc, maxl))
+    lines.extend(Projections(latpos, soc, material["valence"]))
     lines.extend(UnitCell(axes, alat, abohr))
     lines.extend(AtomPos(latpos))
 
