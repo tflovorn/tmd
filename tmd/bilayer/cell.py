@@ -95,9 +95,9 @@ def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
     lat_pos = [[0.0, 0.0],
                [1/3, 2/3],
                [1/3, 2/3],
-               [0.0+d_a, 0.0+d_b],
-               [1/3+d_a, 2/3+d_b],
-               [1/3+d_a, 2/3+d_b]]
+               [(0.0+d_a) % 1, (0.0+d_b) % 1],
+               [(1/3+d_a) % 1, (2/3+d_b) % 1],
+               [(1/3+d_a) % 1, (2/3+d_b) % 1]]
 
     cartpos_2D = []
     for pos in lat_pos:
