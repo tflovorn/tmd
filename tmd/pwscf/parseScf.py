@@ -47,9 +47,11 @@ def D_from_scf(scf_path):
     return D
 
 def latVecs_from_scf(scf_path):
-    '''Returns latVecs (= D.T) in units of alat.
+    '''Returns latVecs (= D.T) in distance units which are the same as alat
+    (i.e. bohr units, not alat units).
     '''
-    D = np.array(D_from_scf(scf_path))
+    alat = alat_from_scf(scf_path)
+    D = alat * np.array(D_from_scf(scf_path))
     return D.T
 
 def num_electrons_from_scf(scf_path):
