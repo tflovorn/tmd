@@ -7,6 +7,7 @@ from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands, build_pw2wan
 from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile, write_launcherfiles
+from tmd.queue.internal import enqueue
 
 def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
     if sym_B is None:
@@ -113,16 +114,26 @@ def _write_dv_queuefile(base_path, dv, config):
     wan_run_config["calc"] = "wan_run"
     write_queuefile(wan_run_config)
 
+def submit_dgrid_wan_setup(base_path, dgrid, config):
+    config["base_path"] = base_path
+
+    for dk, dv in dgrid.items():
+        prefix = dv["material"]["prefix"]
+        dv_config = deepcopy(config)
+        dv_config["prefix"] = prefix
+        dv_config["calc"] = "wan_setup"
+        enqueue(dv_config)
+
 def _main():
     base = _base_dir()
     db_path = os.path.join(base, "c2dm.db")
     gconf = global_config()
 
-    #c_sep, num_d_a, num_d_b = 3.0, 2, 2
-    c_sep, num_d_a, num_d_b = None, None, None
+    c_sep, num_d_a, num_d_b = 3.0, 2, 2
+    #c_sep, num_d_a, num_d_b = None, None, None
     soc = True
-    #symA, symB = "MoS2", "WS2"
-    symA, symB = "MoS2", None
+    symA, symB = "MoS2", "WS2"
+    #symA, symB = "MoS2", None
     dgrid = dgrid_inputs(db_path, symA, symB, c_sep, num_d_a, num_d_b, soc)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
@@ -142,6 +153,8 @@ def _main():
             "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
             "global_prefix": global_prefix}
     write_dgrid_queuefiles(base_path, dgrid, config)
+
+    #submit_dgrid_wan_setup(base_path, dgrid, config)
     
 if __name__ == "__main__":
     _main()
