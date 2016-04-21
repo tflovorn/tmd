@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import os
 import yaml
 from copy import deepcopy
@@ -106,12 +107,18 @@ def write_dgrid_queuefiles(base_path, dgrid, config):
     pw_post_group_config = deepcopy(config)
     pw_post_group_config["calc"] = "pw_post"
     pw_post_group_config["nodes"] = 1
-    pw_post_group_config["cores"] = config["pw_post_cores"]
+    cores_per_node = int(config["cores"] / config["nodes"])
+    pw_post_group_config["cores"] = cores_per_node
     write_job_group_files(pw_post_group_config, prefix_groups)
 
     launcher_config = deepcopy(config)
     launcher_config["prefix_list"] = prefix_list
     launcher_config["calc"] = "wan_run"
+    num_systems = len(prefix_list)
+    num_wannier_nodes = int(math.ceil(num_systems / cores_per_node))
+    num_wannier_cores = num_wannier_nodes * cores_per_node
+    launcher_config["nodes"] = num_wannier_nodes
+    launcher_config["cores"] = num_wannier_cores
     write_launcherfiles(launcher_config)
 
     return prefix_groups
@@ -159,8 +166,6 @@ def _write_dv_queuefile(base_path, dv, config):
 
     pw_post_config = deepcopy(config)
     pw_post_config["calc"] = "pw_post"
-    pw_post_config["nodes"] = 1
-    pw_post_config["cores"] = config["pw_post_cores"]
     write_queuefile(pw_post_config)
 
     wan_run_config = deepcopy(config)
@@ -206,7 +211,7 @@ def _main():
     config = {"machine": "ls5", "cores": num_cores, "nodes": num_nodes, "queue": "normal",
             "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
             "global_prefix": global_prefix, "max_jobs": 24,
-            "pw_post_cores": 24, "outer_min": -8.0, "outer_max": 5.0,
+            "outer_min": -8.0, "outer_max": 5.0,
             "inner_min": -4.0, "inner_max": 3.0}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
