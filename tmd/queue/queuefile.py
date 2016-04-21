@@ -1,7 +1,7 @@
 import os
 import stat
 import tmd.pwscf.config
-from tmd.queue.queue_util import global_config
+from tmd.queue.queue_util import global_config, _base_dir
 
 def write_queuefile(config):
     machine = config["machine"]
@@ -109,6 +109,11 @@ def _write_queuefile_ls5(config):
             qf.append("cd ../wannier")
             qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.nscf.in > nscf.out".format(nk, prefix))
     elif config["calc"] == "pw_post":
+        tmd_base = _base_dir()
+        update_dis = os.path.join(tmd_base, "tmd", "wannier", "update_dis.py")
+        outer_min, outer_max = str(config["outer_min"]), str(config["outer_max"])
+        inner_min, inner_max = str(config["inner_min"]), str(config["inner_max"])
+        qf.append("python3 {} {} {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max))
         qf.append("cd ../bands")
         qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
         qf.append("cd ../wannier")
