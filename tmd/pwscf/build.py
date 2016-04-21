@@ -92,7 +92,7 @@ def wannier_num_bands(valence):
     Returns the total number of valence electrons times 28/18, the ratio used
     in the Wannier90 AHC paper Phys. Rev. B 74, 195118 (2006) (see section IV.A.)
     '''
-    return int(valence["total"] * 28.0/18.0)
+    return int(valence["total"] * 2)
 
 def _control(calc_type, pseudo_dir, etot_conv_thr, forc_conv_thr, calc_name):
     nl = [" &control"]
