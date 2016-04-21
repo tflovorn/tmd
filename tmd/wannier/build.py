@@ -22,15 +22,40 @@ def Disentanglement():
     # Leave with Wannier90 defaults for now: no inner window;
     # outer window covers all evs.
     lines = ["#TODO - set disentanglement window."]
-    lines.append("#dis_win_min = 0.0d0")
-    lines.append("#dis_win_max = 10.0d0")
-    lines.append("#dis_froz_min = 0.0d0")
-    lines.append("#dis_froz_max = 0.0d0")
+    lines.append("dis_win_min = 0.0d0")
+    lines.append("dis_win_max = 10.0d0")
+    lines.append("dis_froz_min = 0.0d0")
+    lines.append("dis_froz_max = 0.0d0")
 
     lines.append("dis_num_iter = 10000")
     lines.append("dis_mix_ratio = 0.5")
     lines.append("")
     return lines
+
+def Update_Disentanglement(win_path, E_Fermi, outer, inner):
+    vals = {"dis_win_min": E_Fermi + outer[0],
+            "dis_win_max": E_Fermi + outer[1],
+            "dis_froz_min": E_Fermi + inner[0],
+            "dis_froz_max": E_Fermi + inner[1]}
+
+    with open(win_path, 'r') as fp:
+        lines = fp.readlines()
+
+    updated = []
+    for line in lines:
+        if line.startswith("#TODO - set disentanglement window."):
+            continue
+
+        new_line = line
+        for k, v in vals.items():
+            if line.startswith(k):
+                new_line = "{} = {}\n".format(k, v)
+                break
+
+        updated.append(new_line)
+
+    with open(win_path, 'w') as fp:
+        fp.write("".join(updated))
 
 def Projections(latpos, soc, valence):
     atoms = []
