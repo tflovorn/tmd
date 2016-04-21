@@ -116,6 +116,8 @@ def _write_queuefile_ls5(config):
         qf.append("python3 {} {} {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max))
         qf.append("cd ../bands")
         qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("rm {}.wfc*".format(prefix))
+        qf.append("rm -r {}.save".format(prefix))
         qf.append("cd ../wannier")
         qf.append("wannier90.x -pp {}".format(prefix))
         qf.append("ibrun tacc_affinity pw2wannier90.x -input {}.pw2wan.in > pw2wan.out".format(prefix))
