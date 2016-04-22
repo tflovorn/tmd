@@ -211,8 +211,8 @@ def _main():
     config = {"machine": "ls5", "cores": num_cores, "nodes": num_nodes, "queue": "normal",
             "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
             "global_prefix": global_prefix, "max_jobs": 24,
-            "outer_min": -8.0, "outer_max": 5.0,
-            "inner_min": -4.0, "inner_max": 3.0}
+            "outer_min": -10.0, "outer_max": 7.0,
+            "inner_min": -8.0, "inner_max": 3.0}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
     submit_dgrid_wan_setup(base_path, config, prefix_groups)
