@@ -43,7 +43,7 @@ def symbols_from_2H(atoms):
     # Consistent M, X, X order.
     return syms[0], syms[1]
 
-def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
+def bilayer_setup(atoms_A, atoms_B=None, c_bulk=None, d_a=None, d_b=None, c_sep_input=None):
     # Choose lattice constant from A.
     a = a_from_2H(atoms_A)
 
@@ -82,6 +82,11 @@ def bilayer_setup(atoms_A, atoms_B=None, c_sep=None, d_a=None, d_b=None):
 
     # Bilayer.
     h_B = h_from_2H(atoms_B)
+
+    if c_sep_input is not None:
+        c_sep = c_sep_input
+    else:
+        c_sep = (c_bulk - h_A - h_B) / 2
 
     X2_B = c_sep/2.0 + h_B
     M_B  = c_sep/2.0 + h_B/2.0
@@ -143,7 +148,8 @@ def _main():
     #    print("h = {} Ang".format(str(h_from_2H(atoms))))
     MoS2 = get_atoms(db, "MoS2", "H").toatoms()
     WS2 = get_atoms(db, "WS2", "H").toatoms()
-    latvecs, cartpos, eq_latconst = bilayer_setup(MoS2, WS2, 3.0, 0.1, 0.1)
+    c_bulk = 12.296
+    latvecs, cartpos, eq_latconst = bilayer_setup(MoS2, WS2, c_bulk, 0.1, 0.1)
     print(latvecs)
     print(cartpos)
     print(eq_latconst)

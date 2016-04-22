@@ -10,7 +10,7 @@ from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile, write_launcherfiles, write_job_group_files
 from tmd.queue.internal import enqueue
 
-def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=None, soc=True):
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, soc=True, c_sep=None):
     if sym_B is None:
         d_as = [0.0]
         d_bs = [0.0]
@@ -22,7 +22,7 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_sep=None, num_d_a=None, num_d_b=N
 
     for d_a in d_as:
         for d_b in d_bs:
-            material = get_material(db_path, sym_A, sym_B, c_sep, d_a, d_b, soc)
+            material = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, soc, c_sep)
 
             inputs[(d_a, d_b)] = {"material": material}
             for calc_type in ["scf", "nscf", "bands"]:
@@ -141,6 +141,15 @@ def get_prefix_groups(base_path, global_prefix):
     prefix_groups = yaml.load(groups_str)
     return prefix_groups
 
+def get_prefixes(base_path, global_prefix):
+    prefix_groups = get_prefix_groups(base_path, global_prefix)
+    prefixes = []
+    for group in prefix_groups:
+        for prefix in group:
+            prefixes.append(prefix)
+
+    return prefixes
+
 def group_jobs(config, prefix_list):
     max_jobs = config["max_jobs"]
 
@@ -186,12 +195,15 @@ def _main():
     db_path = os.path.join(base, "c2dm.db")
     gconf = global_config()
 
-    #c_sep, num_d_a, num_d_b = 3.0, 2, 2
-    c_sep, num_d_a, num_d_b = None, None, None
+    #c_sep, num_d_a, num_d_b = 3.0, 12, 12
+    num_d_a, num_d_b = 8, 8
+    #c_sep, num_d_a, num_d_b = None, None, None
     soc = True
-    #symA, symB = "MoS2", "WS2"
-    symA, symB = "MoS2", None
-    dgrid = dgrid_inputs(db_path, symA, symB, c_sep, num_d_a, num_d_b, soc)
+    symA, symB = "MoSe2", "WSe2"
+    #c_bulk = 12.296 # MoS2
+    c_bulk = 12.939 # MoSe2
+    #symA, symB = "MoS2", None
+    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b, soc, c_sep=None)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 

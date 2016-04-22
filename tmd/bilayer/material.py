@@ -109,7 +109,7 @@ def get_valence(atoms_A, atoms_B=None, soc=True):
 
     return valence
 
-def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None, soc=True):
+def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, soc=True, c_sep=None):
     db = ase.db.connect(db_path)
     atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
 
@@ -117,7 +117,7 @@ def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None, soc
     if sym_B != None:
         atoms_B = tmd.bilayer.cell.get_atoms(db, sym_B, "H").toatoms()
 
-    latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_sep, d_a, d_b)
+    latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_bulk, d_a, d_b, c_sep_input=c_sep)
 
     material = base_material(soc)
 
@@ -141,9 +141,10 @@ def get_material(db_path, sym_A, sym_B=None, c_sep=None, d_a=None, d_b=None, soc
 def _main():
     base = _base_dir()
     db_path = os.path.join(base, "c2dm.db")
-    c_sep, d_a, d_b = 3.0, 0.1, 0.1
+    c_bulk = 12.296
+    d_a, d_b = 0.1, 0.1
 
-    material = get_material(db_path, "MoS2", "WS2", c_sep, d_a, d_b)
+    material = get_material(db_path, "MoS2", "WS2", c_bulk, d_a, d_b)
 
     for k, v in material.items():
         print(k, v)

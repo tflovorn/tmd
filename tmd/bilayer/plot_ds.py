@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from tmd.pwscf.parseScf import total_energy_eV_from_scf
 from tmd.bilayer.bilayer_util import global_config
-from tmd.bilayer.dgrid import get_prefix_groups
+from tmd.bilayer.dgrid import get_prefixes
 
 def ds_from_prefixes(prefixes):
     ds = []
@@ -44,13 +44,7 @@ def _main():
     work = gconf["work_base"]
     
     global_prefix = "MoS2_WS2"
-    prefix_groups = get_prefix_groups(work, global_prefix)
-
-    prefixes = []
-    for group in prefix_groups:
-        for prefix in group:
-            prefixes.append(prefix)
-
+    prefixes = get_prefixes(work, global_prefix)
     ds = ds_from_prefixes(prefixes)
 
     ds, prefixes = wrap_cell(ds, prefixes)
