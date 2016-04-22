@@ -2,9 +2,9 @@ import argparse
 import os
 from tmd.pwscf.extractQEBands import extractQEBands
 from tmd.pwscf.parseScf import alat_from_scf, latVecs_from_scf, fermi_from_scf
-from tmd.wannier.wannier_util import global_config
 from tmd.wannier.extractHr import extractHr
 from tmd.wannier.plotBands import plotBands
+from tmd.bilayer.bilayer_util import global_config
 
 def _main():
     gconf = global_config()

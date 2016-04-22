@@ -97,3 +97,21 @@ def magnetization_from_scf(scf_path):
                 spl = lines[mag_line].split()
 
     return total_mag, abs_mag, site_mags
+
+def total_energy_eV_from_scf(scf_path):
+    eV_per_Ry = 13.605693
+
+    with open(scf_path, 'r') as fp:
+        lines = fp.readlines()
+
+    total_energy_eV = None
+    for line in lines:
+        if line.startswith("!    total energy"):
+            total_energy_Ry = float(line.strip().split()[-2])
+            total_energy_eV = total_energy_Ry * eV_per_Ry
+            break
+
+    if total_energy_eV is None:
+        raise ValueError("total energy not found")
+
+    return total_energy_eV
