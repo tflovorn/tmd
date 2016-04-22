@@ -109,11 +109,6 @@ def _write_queuefile_ls5(config):
             qf.append("cd ../wannier")
             qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.nscf.in > nscf.out".format(nk, prefix))
     elif config["calc"] == "pw_post":
-        tmd_base = _base_dir()
-        update_dis = os.path.join(tmd_base, "tmd", "wannier", "update_dis.py")
-        outer_min, outer_max = str(config["outer_min"]), str(config["outer_max"])
-        inner_min, inner_max = str(config["inner_min"]), str(config["inner_max"])
-        qf.append("python3 {} {} {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max))
         qf.append("cd ../bands")
         qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
         qf.append("rm {}.wfc*".format(prefix))
@@ -125,7 +120,13 @@ def _write_queuefile_ls5(config):
         qf.append("rm {}.wfc*".format(prefix))
     elif config["calc"] == "wan_run":
         wan_dir = os.path.join(config["base_path"], config["prefix"], "wannier")
-        qf.append("cd {}; wannier90.x {}".format(wan_dir, prefix))
+        tmd_base = _base_dir()
+        update_dis = os.path.join(tmd_base, "tmd", "wannier", "update_dis.py")
+        outer_min, outer_max = str(config["outer_min"]), str(config["outer_max"])
+        inner_min, inner_max = str(config["inner_min"]), str(config["inner_max"])
+        qf.append("python3 '{}' '{}' {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max))
+        qf.append("cd {}".format(wan_dir))
+        qf.append("wannier90.x {}".format(prefix))
     else:
         raise ValueError("unrecognized config['calc'] ('wan_setup' and 'wan_run' supported)")
 
