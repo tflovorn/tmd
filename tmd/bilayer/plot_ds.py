@@ -144,6 +144,9 @@ def orbital_index(atom_Hr_order, sym, orbital, spin, soc=True):
     else:
         raise ValueError("unrecognized atom position symbol")
 
+    if orbital not in this_orbitals:
+        raise ValueError("orbital {} not present for atom {}".format(orbital, sym))
+
     for orb in this_orbitals:
         if orb == orbital:
             break
