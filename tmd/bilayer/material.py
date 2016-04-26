@@ -109,12 +109,12 @@ def get_valence(atoms_A, atoms_B=None, soc=True):
 
     return valence
 
-def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, soc=True, c_sep=None):
+def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, soc=True, c_sep=None, atoms_A=None, atoms_B=None):
     db = ase.db.connect(db_path)
-    atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
+    if atoms_A is None:
+        atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
 
-    atoms_B = None
-    if sym_B != None:
+    if atoms_B is None and sym_B is not None:
         atoms_B = tmd.bilayer.cell.get_atoms(db, sym_B, "H").toatoms()
 
     latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_bulk, d_a, d_b, c_sep_input=c_sep)
@@ -136,7 +136,7 @@ def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, so
 
     # TODO - additional W90 parameters? (energy windows - or dist of window from E_F)
 
-    return material
+    return material, atoms_A, atoms_B
 
 def _main():
     base = _base_dir()

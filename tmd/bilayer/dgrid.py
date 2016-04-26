@@ -19,10 +19,11 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=
         d_bs = np.linspace(0.0, 1.0, num_d_b, endpoint=False)
 
     inputs = {}
+    atoms_A, atoms_B = None, None
 
     for d_a in d_as:
         for d_b in d_bs:
-            material = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, soc, c_sep)
+            material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, soc, c_sep, atoms_A, atoms_B)
 
             inputs[(d_a, d_b)] = {"material": material}
             for calc_type in ["scf", "nscf", "bands"]:
