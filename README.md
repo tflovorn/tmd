@@ -63,3 +63,17 @@ Install:
 or:
 
     python3 setup.py develop
+
+For making plots, need cwannier:
+
+    git submodule init
+    git submodule update
+    cd cwannier
+    git submodule init
+    git submodule update
+    cd ctetra
+    make
+    cd ..
+    make
+
+

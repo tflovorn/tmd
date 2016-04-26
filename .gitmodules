@@ -1,0 +1,3 @@
+[submodule "cwannier"]
+	path = cwannier
+	url = https://bitbucket.org/tflovorn/cwannier.git
