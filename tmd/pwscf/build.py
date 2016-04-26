@@ -89,8 +89,16 @@ def _join(xs):
 def wannier_num_bands(valence):
     '''Number of bands to use in nscf/bands calculation for use with Wannier90.
 
+    Originally used:
     Returns the total number of valence electrons times 28/18, the ratio used
     in the Wannier90 AHC paper Phys. Rev. B 74, 195118 (2006) (see section IV.A.)
+
+    Changed to factor of 2 to include additional bands above TMD conduction
+    band group (28/18 seems to just barely include full TMD conduction bands group;
+    for some d values, this group overlaps with group above it).
+
+    Since valence is reduced when soc is False, do not need to change the
+    calculation here based on SOC.
     '''
     return int(valence["total"] * 2)
 
