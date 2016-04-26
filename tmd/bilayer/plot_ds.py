@@ -164,7 +164,31 @@ def extract_Hk_vals(work, dps, soc):
             ("M_X1p_z2_z_uu_K", (1/3, 1/3, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
             ("M_X1p_z2_z_ud_K", (1/3, 1/3, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
             ("X2_Mp_z_z2_uu_K", (1/3, 1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
-            ("X2_Mp_z_z2_ud_K", (1/3, 1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
+            ("X2_Mp_z_z2_ud_K", (1/3, 1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "down"]),
+            ("X2_X1p_z_z_uu_Kp", (-1/3, -1/3, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_Kp", (-1/3, -1/3, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
+            ("M_X1p_z2_z_uu_Kp", (-1/3, -1/3, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
+            ("M_X1p_z2_z_ud_Kp", (-1/3, -1/3, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_Kp", (-1/3, -1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_Kp", (-1/3, -1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "down"]),
+            ("X2_X1p_z_z_uu_G", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_G", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
+            ("M_X1p_z2_z_uu_G", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
+            ("M_X1p_z2_z_ud_G", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_G", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_G", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"]),
+            ("X2_X1p_z_z_uu_M", (1/2, 0, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_M", (1/2, 0, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
+            ("M_X1p_z2_z_uu_M", (1/2, 0, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
+            ("M_X1p_z2_z_ud_M", (1/2, 0, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_M", (1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_M", (1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"]),
+            ("X2_X1p_z_z_uu_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
+            ("M_X1p_z2_z_uu_Mp", (-1/2, 0, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
+            ("M_X1p_z2_z_ud_Mp", (-1/2, 0, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
 
     Hk_vals = {}
     for d, prefix in dps:
