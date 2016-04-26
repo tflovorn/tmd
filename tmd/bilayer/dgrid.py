@@ -199,11 +199,15 @@ def _main():
     #c_sep, num_d_a, num_d_b = 3.0, 12, 12
     num_d_a, num_d_b = 8, 8
     #c_sep, num_d_a, num_d_b = None, None, None
-    soc = True
-    symA, symB = "MoSe2", "WSe2"
-    #c_bulk = 12.296 # MoS2
-    c_bulk = 12.939 # MoSe2
+
+    soc = False
+
+    symA, symB = "MoS2", "WS2"
     #symA, symB = "MoS2", None
+
+    c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
+    c_bulk = c_bulk_values[symA]
+
     dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b, soc, c_sep=None)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
