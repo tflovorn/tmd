@@ -3,10 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from tmd.pwscf.parseScf import total_energy_eV_from_scf
+from tmd.wannier.parseWout import atom_order_from_wout
+from tmd.wannier.bands import Hk_recip
+from tmd.bilayer.dfourier import get_Hr
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.dgrid import get_prefixes
-from tmd.wannier.extractHr import extractHr
-from tmd.wannier.parseWout import atom_order_from_wout
 
 def ds_from_prefixes(prefixes):
     ds = []
@@ -42,6 +43,9 @@ def wrap_cell(ds, values):
     return wrapped_ds, wrapped_values
 
 def sorted_d_group(ds, values):
+    '''Zip ds with values and sort such that d's (and their associated values)
+    are in ascending order, with db ascending faster than da.
+    '''
     dvs = list(zip(ds, values))
     dvs = sorted(dvs, key=lambda dp: dp[0][1])
     dvs = sorted(dvs, key=lambda dp: dp[0][0])
@@ -85,13 +89,6 @@ def sort_order(xs, f):
         order.append(orig_index)
 
     return order
-
-def get_Hr(work, prefix):
-    wannier_dir = os.path.join(work, prefix, "wannier")
-    Hr_path = os.path.join(wannier_dir, "{}_hr.dat".format(prefix))
-
-    Hr = extractHr(Hr_path)
-    return Hr
 
 def get_atom_order(work, prefix):
     z_order_syms = ["X1", "M", "X2", "X1p", "Mp", "X2p"]
@@ -160,38 +157,39 @@ def orbital_index(atom_Hr_order, sym, orbital, spin, soc=True):
     else:
         raise ValueError("unrecognized spin")
 
-def extract_Hr_elems(work, dps, soc):
-    orbital_pairs = [("X2_X1p_z_z_uu_0", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
-            ("X2_X1p_z_z_ud_0", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
-            ("M_X1p_z2_z_uu_0", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
-            ("M_X1p_z2_z_ud_0", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
-            ("X2_Mp_z_z2_uu_0", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
-            ("X2_Mp_z_z2_ud_0", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
+def extract_Hk_vals(work, dps, soc):
+    orbital_pairs = [("X2_X1p_z_z_uu_K", (1/3, 1/3, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_K", (1/3, 1/3, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
+            ("M_X1p_z2_z_uu_K", (1/3, 1/3, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
+            ("M_X1p_z2_z_ud_K", (1/3, 1/3, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_K", (1/3, 1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_K", (1/3, 1/3, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
 
-    Hr_elems = {}
+    Hk_vals = {}
     for d, prefix in dps:
         Hr = get_Hr(work, prefix)
         atom_Hr_order = get_atom_order(work, prefix)
 
-        for label, R, orb_types in orbital_pairs:
+        for label, klat, orb_types in orbital_pairs:
             i_sym, i_orbital, i_spin = orb_types[0], orb_types[1], orb_types[2]
             j_sym, j_orbital, j_spin = orb_types[3], orb_types[4], orb_types[5]
 
             i_index = orbital_index(atom_Hr_order, i_sym, i_orbital, i_spin, soc=True)
             j_index = orbital_index(atom_Hr_order, j_sym, j_orbital, j_spin, soc=True)
 
-            val = Hr[R][0][i_index, j_index] / Hr[R][1] # Hr[R][0] - matrix; Hr[R][1] - ndegen
+            Hk = Hk_recip(klat, Hr)
+            val = Hk[i_index, j_index]
 
             re_label, im_label = "{}_re".format(label), "{}_im".format(label)
-            if re_label not in Hr_elems:
-                Hr_elems[re_label] = []
-            if im_label not in Hr_elems:
-                Hr_elems[im_label] = []
+            if re_label not in Hk_vals:
+                Hk_vals[re_label] = []
+            if im_label not in Hk_vals:
+                Hk_vals[im_label] = []
 
-            Hr_elems[re_label].append(val.real)
-            Hr_elems[im_label].append(val.imag)
+            Hk_vals[re_label].append(val.real)
+            Hk_vals[im_label].append(val.imag)
 
-    return Hr_elems
+    return Hk_vals
 
 def plot_d_vals(plot_name, title, dps, values):
     xs, ys = [], []
@@ -247,12 +245,12 @@ def _main():
     plot_d_vals(E_plot_name, E_title, dps, energies_rel_meV)
 
     soc = True
-    Hr_elems = extract_Hr_elems(work, dps, soc)
+    Hk_vals = extract_Hk_vals(work, dps, soc)
 
-    for label, Hr_vals in Hr_elems.items():
+    for label, this_vals in Hk_vals.items():
         title = label
         plot_name = "{}_{}".format(global_prefix, label)
-        plot_d_vals(plot_name, title, dps, Hr_vals)
+        plot_d_vals(plot_name, title, dps, this_vals)
 
 if __name__ == "__main__":
     _main()
