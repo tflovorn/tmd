@@ -110,14 +110,15 @@ def orbital_index(atom_Hr_order, sym, orbital, spin, soc=True):
     spin is in ["up", "down"].
     spin is ignored if soc is False.
     '''
-    if soc is False:
-        #TODO
-        raise ValueError("soc == False not implemented")
+    if soc:
+        num_spins = 2
+    else:
+        num_spins = 1
 
     X_syms = ["X1", "X2", "X1p", "X2p"]
     M_syms = ["M", "Mp"]
-    X_num_orbitals = 2*3
-    M_num_orbitals = 2*5
+    X_num_orbitals = num_spins*3
+    M_num_orbitals = num_spins*5
 
     orb_index = 0
     for at_sym in atom_Hr_order:
@@ -148,9 +149,9 @@ def orbital_index(atom_Hr_order, sym, orbital, spin, soc=True):
         if orb == orbital:
             break
 
-        orb_index += 2
+        orb_index += num_spins
 
-    if spin == "up":
+    if not soc or spin == "up":
         return orb_index
     elif spin == "down":
         return orb_index + 1
@@ -174,8 +175,8 @@ def extract_Hk_vals(work, dps, soc):
             i_sym, i_orbital, i_spin = orb_types[0], orb_types[1], orb_types[2]
             j_sym, j_orbital, j_spin = orb_types[3], orb_types[4], orb_types[5]
 
-            i_index = orbital_index(atom_Hr_order, i_sym, i_orbital, i_spin, soc=True)
-            j_index = orbital_index(atom_Hr_order, j_sym, j_orbital, j_spin, soc=True)
+            i_index = orbital_index(atom_Hr_order, i_sym, i_orbital, i_spin, soc)
+            j_index = orbital_index(atom_Hr_order, j_sym, j_orbital, j_spin, soc)
 
             Hk = Hk_recip(klat, Hr)
             val = Hk[i_index, j_index]
