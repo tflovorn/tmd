@@ -162,8 +162,12 @@ def orbital_index(atom_Hr_order, sym, orbital, spin, soc=True):
 
 def extract_Hr_elems(work, dps, soc):
     orbital_pairs = [("X2_X1p_z_z_uu_0", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "up"]),
+            ("X2_X1p_z_z_ud_0", (0, 0, 0), ["X2", "pz", "up", "X1p", "pz", "down"]),
             ("M_X1p_z2_z_uu_0", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "up"]),
-            ("X2_Mp_z_z2_uu_0", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"])]
+            ("M_X1p_z2_z_ud_0", (0, 0, 0), ["M", "dz2", "up", "X1p", "pz", "down"]),
+            ("X2_Mp_z_z2_uu_0", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
+            ("X2_Mp_z_z2_ud_0", (0, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
+
     Hr_elems = {}
     for d, prefix in dps:
         Hr = get_Hr(work, prefix)
