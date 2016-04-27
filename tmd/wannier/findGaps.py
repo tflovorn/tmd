@@ -1,7 +1,7 @@
 from tmd.wannier.Dos import Dos
 
-def HrFindGaps(minE, maxE, num_dos, n0, R, HrPath):
-    dos_vals, E_vals = Dos(minE, maxE, num_dos, n0, R, HrPath)
+def HrFindGaps(minE, maxE, num_dos, na, nb, nc, R, HrPath):
+    dos_vals, E_vals = Dos(minE, maxE, num_dos, na, nb, nc, R, HrPath)
     gaps = FindGaps(dos_vals, E_vals)
     return gaps, dos_vals, E_vals
 

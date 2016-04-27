@@ -2,9 +2,10 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from tmd.pwscf.parseScf import total_energy_eV_from_scf
+from tmd.pwscf.parseScf import total_energy_eV_from_scf, fermi_from_scf, D_from_scf
 from tmd.wannier.parseWout import atom_order_from_wout
 from tmd.wannier.bands import Hk_recip
+from tmd.wannier.findGaps import HrFindGaps
 from tmd.bilayer.dfourier import get_Hr
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.dgrid import get_prefixes
@@ -216,6 +217,44 @@ def extract_Hk_vals(work, dps, soc):
 
     return Hk_vals
 
+def system_all_gaps(work, prefix, E_below_fermi, E_above_fermi, num_dos, na, nb):
+    HrPath = os.path.join(work, prefix, "wannier", "{}_hr.dat".format(prefix))
+    scf_path = os.path.join(work, prefix, "wannier", "scf.out")
+
+    E_F = fermi_from_scf(scf_path)
+    minE = E_F - E_below_fermi
+    maxE = E_F + E_above_fermi
+
+    D = D_from_scf(scf_path)
+    R = 2 * np.pi * np.linalg.inv(D)
+    nc = 1
+
+    gaps, dos_vals, E_vals = HrFindGaps(minE, maxE, num_dos, na, nb, nc, R, HrPath)
+    return gaps, dos_vals, E_vals
+
+def find_gaps(work, dps, E_below_fermi, E_above_fermi, num_dos, na, nb):
+    gaps = []
+    for d, prefix in dps:
+        this_gaps, this_dos, this_E = system_all_gaps(work, prefix, E_below_fermi, E_above_fermi, num_dos, na, nb)
+        scf_path = os.path.join(work, prefix, "wannier", "scf.out")
+        E_F = fermi_from_scf(scf_path)
+
+        gap_at_fermi = None
+        for gap_interval in this_gaps:
+            if E_F >= gap_interval[0] and E_F <= gap_interval[1]:
+                gap_at_fermi = gap_interval
+                break
+            # for now - don't allow E_F to be outside gap
+            # may need to correct this
+
+        if gap_at_fermi is not None:
+            gap_val = gap_at_fermi[1] - gap_at_fermi[0]
+            gaps.append(gap_val)
+        else:
+            gaps.append(0.0)
+
+    return gaps
+
 def plot_d_vals(plot_name, title, dps, values):
     xs, ys = [], []
     xs_set, ys_set = set(), set()
@@ -255,7 +294,7 @@ def _main():
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
     
-    global_prefix = "MoSe2_WSe2"
+    global_prefix = "MoS2_WS2"
     prefixes = get_prefixes(work, global_prefix)
     ds = ds_from_prefixes(prefixes)
 
@@ -276,6 +315,15 @@ def _main():
         title = label
         plot_name = "{}_{}".format(global_prefix, label)
         plot_d_vals(plot_name, title, dps, this_vals)
+
+    na, nb = 16, 16
+    num_dos = 1000
+    E_below_fermi, E_above_fermi = 3.0, 3.0
+    gaps = find_gaps(work, dps, E_below_fermi, E_above_fermi, num_dos, na, nb)
+
+    gap_plot_title = "Gaps [eV]"
+    gap_plot_name = "{}_gaps".format(global_prefix)
+    plot_d_vals(gap_plot_name, gap_plot_title, dps, gaps)
 
 if __name__ == "__main__":
     _main()

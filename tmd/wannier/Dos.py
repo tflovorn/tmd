@@ -4,21 +4,22 @@ from uuid import uuid4
 from tmd.wannier.wannier_util import _base_dir
 from tmd.wannier.bands import Hk_recip
 
-def Dos(minE, maxE, num_dos, n0, R, HrPath):
+def Dos(minE, maxE, num_dos, na, nb, nc, R, HrPath):
     '''Return two lists, dos_vals and E_vals. dos_vals contains the density
     of states D(E) at num_dos energies E between minE and maxE. E_vals
     contains the E values at which the corresponding element of dos_vals
     was evaluated.
     
     Hr gives the Wannier Hamiltonian in the form returned by extractHr.
-    n0 gives the number of k-points to use to obtain D(E).
+    na, nb, nc give the number of k-points in each reciprocal lattice direction
+        to use to obtain D(E).
     R is a numpy matrix with rows equal to the reciprocal lattice vectors.
     HrPath gives the path to the hr.dat file containing the Wannier Hamiltonian.
     '''
     cwannierPath = os.path.join(_base_dir(), "cwannier")
     dos_outpath = str(uuid4())
     run_dos_path = os.path.join(cwannierPath, "RunDosValues.out")
-    run_dos_call = [run_dos_path, HrPath, dos_outpath, str(minE), str(maxE), str(num_dos), str(n0), _rlist(R[0, :]), _rlist(R[1, :]), _rlist(R[2, :])]
+    run_dos_call = [run_dos_path, HrPath, dos_outpath, str(minE), str(maxE), str(num_dos), str(na), str(nb), str(nc), _rlist(R[0, :]), _rlist(R[1, :]), _rlist(R[2, :])]
 
     subprocess.call(run_dos_call)
 
