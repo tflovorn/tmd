@@ -1,4 +1,5 @@
 import os
+from multiprocessing import Pool
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -233,9 +234,16 @@ def system_all_gaps(work, prefix, E_below_fermi, E_above_fermi, num_dos, na, nb)
     return gaps, dos_vals, E_vals
 
 def find_gaps(work, dps, E_below_fermi, E_above_fermi, num_dos, na, nb):
-    gaps = []
+    gap_call_args = []
     for d, prefix in dps:
-        this_gaps, this_dos, this_E = system_all_gaps(work, prefix, E_below_fermi, E_above_fermi, num_dos, na, nb)
+        gap_call_args.append((work, prefix, E_below_fermi, E_above_fermi, num_dos, na, nb))
+
+    with Pool() as pool:
+        all_gaps_output = pool.starmap(system_all_gaps, gap_call_args)
+
+    gaps = []
+    for d_index, (d, prefix) in enumerate(dps):
+        this_gaps = all_gaps_output[d_index][0]
         scf_path = os.path.join(work, prefix, "wannier", "scf.out")
         E_F = fermi_from_scf(scf_path)
 
