@@ -7,9 +7,9 @@ from tmd.pwscf.parseScf import total_energy_eV_from_scf, fermi_from_scf, D_from_
 from tmd.wannier.parseWout import atom_order_from_wout
 from tmd.wannier.bands import Hk_recip
 from tmd.wannier.findGaps import HrFindGaps
-from tmd.bilayer.dfourier import get_Hr
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.dgrid import get_prefixes
+from tmd.bilayer.wannier import get_Hr
 
 def ds_from_prefixes(prefixes):
     ds = []
