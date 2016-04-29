@@ -10,7 +10,7 @@ from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile, write_launcherfiles, write_job_group_files
 from tmd.queue.internal import enqueue
 
-def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, soc=True, c_sep=None):
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, c_sep=None, soc=True, xc="lda"):
     if sym_B is None:
         d_as = [0.0]
         d_bs = [0.0]
@@ -23,7 +23,7 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=
 
     for d_a in d_as:
         for d_b in d_bs:
-            material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, soc, c_sep, atoms_A, atoms_B)
+            material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, c_sep, soc, xc, atoms_A, atoms_B)
 
             inputs[(d_a, d_b)] = {"material": material}
             for calc_type in ["scf", "nscf", "bands"]:
@@ -201,6 +201,7 @@ def _main():
     #c_sep, num_d_a, num_d_b = None, None, None
 
     soc = False
+    xc = "lda"
 
     symA, symB = "MoS2", "WS2"
     #symA, symB = "MoS2", None
@@ -208,7 +209,7 @@ def _main():
     c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
     c_bulk = c_bulk_values[symA]
 
-    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b, soc, c_sep=None)
+    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b, c_sep=None, soc=soc, xc=xc)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 

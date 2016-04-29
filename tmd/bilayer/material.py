@@ -10,15 +10,21 @@ def _base_dir():
     base_dir = os.path.join(this_dir, "..", "..")
     return os.path.normpath(base_dir)
 
-def base_material(soc):
+def base_material(soc, xc):
     # The following are values which are independent of the bilayer material.
     # To complete the dataset, must fix:
     #    eq_latconst, latvecs, cartpos, pseudo, weight, valence
     material = {}
     if soc:
-        material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "soc")
+        if xc == "lda":
+            material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "lda_soc")
+        else:
+            material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "soc")
     else:
-        material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "no_soc")
+        if xc == "lda":
+            material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "lda_no_soc")
+        else:
+            material["pseudo_dir"] = os.path.join(_base_dir(), "pseudo", "no_soc")
 
     material["soc"] = soc
 
@@ -109,7 +115,7 @@ def get_valence(atoms_A, atoms_B=None, soc=True):
 
     return valence
 
-def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, soc=True, c_sep=None, atoms_A=None, atoms_B=None):
+def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, c_sep=None, soc=True, xc="lda", atoms_A=None, atoms_B=None):
     db = ase.db.connect(db_path)
     if atoms_A is None:
         atoms_A = tmd.bilayer.cell.get_atoms(db, sym_A, "H").toatoms()
@@ -119,7 +125,7 @@ def get_material(db_path, sym_A, sym_B=None, c_bulk=None, d_a=None, d_b=None, so
 
     latvecs, cartpos, eq_latconst = tmd.bilayer.cell.bilayer_setup(atoms_A, atoms_B, c_bulk, d_a, d_b, c_sep_input=c_sep)
 
-    material = base_material(soc)
+    material = base_material(soc, xc)
 
     if sym_B is None:
         material["prefix"] = "{}".format(sym_A)
