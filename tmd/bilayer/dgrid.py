@@ -116,7 +116,7 @@ def write_dgrid_queuefiles(base_path, dgrid, config):
     launcher_config["prefix_list"] = prefix_list
     launcher_config["calc"] = "wan_run"
     num_systems = len(prefix_list)
-    num_wannier_nodes = int(math.ceil(num_systems / cores_per_node))
+    num_wannier_nodes = math.ceil(num_systems / (4*cores_per_node))
     num_wannier_cores = num_wannier_nodes * cores_per_node
     launcher_config["nodes"] = num_wannier_nodes
     launcher_config["cores"] = num_wannier_cores
