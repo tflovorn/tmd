@@ -1,5 +1,6 @@
 import os
 import itertools
+from multiprocessing import Pool
 import numpy as np
 import matplotlib.pyplot as plt
 from tmd.wannier.bands import Hk_recip
@@ -8,7 +9,7 @@ from tmd.bilayer.dgrid import get_prefixes
 from tmd.bilayer.wannier import get_Hr
 from tmd.bilayer.plot_ds import ds_from_prefixes, wrap_cell, sorted_d_group, orbital_index, get_atom_order
 
-def H_klat_Glat(klat, Gs, dps, all_orb_types, soc):
+def H_klat_Glat(dps, kGs):
     '''Integrate by trapezoid method.
     Lazy way to compute: for each region, compute each Hk at boundaries.
     Avoid point storage scheme and possible high memory use
@@ -19,7 +20,7 @@ def H_klat_Glat(klat, Gs, dps, all_orb_types, soc):
       * (f(x1, y1) + f(x1, y2) + f(x2, y1) + f(x2, y2))
 
     To avoid repeated unecessary loads of Hrs, and to avoid keeping all
-    Hrs in memory, compute integral values for each (G, orb_types) pair
+    Hrs in memory, compute integral values for each (k, G) pair
     simultaneously.
     '''
     gconf = global_config()
@@ -30,35 +31,48 @@ def H_klat_Glat(klat, Gs, dps, all_orb_types, soc):
 
     d_boundary_indices, delta_a, delta_b = trapezoid_d_regions(ds)
 
-    integrals = {}
+    # Calculate integral over each region individually.
+    # region_integral_vals is a list (with indices corresponding to regions)
+    # whose elements are dicts {(k, G): region_integral_val, ...}
+    rint_args = []
     for region_indices in d_boundary_indices:
-        region_sums = {}
-        for d_index in region_indices:
-            d, prefix = dps[d_index]
-            atom_Hr_order = get_atom_order(work, prefix)
-            Hr = get_Hr(work, prefix)
-            Hk = Hk_recip(klat, Hr)
+        rint_args.append([region_indices, delta_a, delta_b, kGs, work, dps])
 
-            for G, orb_types in itertools.product(Gs, all_orb_types):
-                i_sym, i_orbital, i_spin = orb_types[0], orb_types[1], orb_types[2]
-                j_sym, j_orbital, j_spin = orb_types[3], orb_types[4], orb_types[5]
+    with Pool() as p:
+        region_integral_vals = p.starmap(region_integral, rint_args)
 
-                i_index = orbital_index(atom_Hr_order, i_sym, i_orbital, i_spin, soc)
-                j_index = orbital_index(atom_Hr_order, j_sym, j_orbital, j_spin, soc)
-
-                efac = np.exp(2*np.pi*1j*np.dot(np.array(G), np.array(d)))
-                val = Hk[i_index, j_index] * efac
-                if (G, orb_types) not in region_sums:
-                    region_sums[(G, orb_types)] = val
-                else:
-                    region_sums[(G, orb_types)] += val
-
-        for G, orb_types in itertools.product(Gs, all_orb_types):
-            region_integral = delta_a * delta_b * region_sums[(G, orb_types)] / 4
-            if (G, orb_types) not in integrals:
-                integrals[(G, orb_types)] = region_integral
+    # Collect region integrals into totals.
+    integral_totals = {}
+    for region_dict in region_integral_vals:
+        for (k, G), val in region_dict.items():
+            if (k, G) not in integral_totals:
+                integral_totals[(k, G)] = val
             else:
-                integrals[(G, orb_types)] += region_integral
+                integral_totals[(k, G)] += val
+
+    return integral_totals
+
+def region_integral(region_indices, delta_a, delta_b, kGs, work, dps):
+    # Sum up the integrand values for each boundary point of the region.
+    region_sums = {}
+    for d_index in region_indices:
+        d, prefix = dps[d_index]
+        Hr = get_Hr(work, prefix)
+
+        for k, G in kGs:
+            Hk = Hk_recip(k, Hr)
+            Gdotd = 2*np.pi*(G[0]*d[0] + G[1]*d[1])
+            efac = np.exp(1j*Gdotd)
+            val = Hk * efac
+            if (k, G) not in region_sums:
+                region_sums[(k, G)] = val
+            else:
+                region_sums[(k, G)] += val
+
+    # Calculate this region's contribution to the integral.
+    integrals = {}
+    for k, G in kGs:
+        integrals[(k, G)] = delta_a * delta_b * region_sums[(k, G)] / 4
 
     return integrals
 
@@ -99,6 +113,16 @@ def trapezoid_d_regions(ds):
 
     return d_boundary_indices, delta_a, delta_b
 
+def verify_Hr_orders_identical(work, prefixes):
+    order = None
+    for prefix in prefixes:
+        if order is None:
+            order = get_atom_order(work, prefix)
+        else:
+            this_order = get_atom_order(work, prefix)
+            if this_order != order:
+                raise ValueError("atom orders vary between ds")
+
 def _main():
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
@@ -110,6 +134,17 @@ def _main():
     ds, prefixes = wrap_cell(ds, prefixes)
     dps = sorted_d_group(ds, prefixes)
 
+    # Verify all Hr_orders are the same;
+    # after this, assume order is the same for all ds.
+    verify_Hr_orders_identical(work, prefixes)
+    atom_Hr_order = get_atom_order(work, prefixes[0])
+
+    orb_type = ("X2", "pz", "up", "X1p", "pz", "up")
+    i_sym, i_orbital, i_spin = orb_type[0], orb_type[1], orb_type[2]
+    j_sym, j_orbital, j_spin = orb_type[3], orb_type[4], orb_type[5]
+    i_index = orbital_index(atom_Hr_order, i_sym, i_orbital, i_spin, soc)
+    j_index = orbital_index(atom_Hr_order, j_sym, j_orbital, j_spin, soc)
+
     Gs = []
     num_Ga, num_Gb = 5, 5
     for Ga in range(num_Ga):
@@ -117,16 +152,17 @@ def _main():
             G = (Ga, Gb)
             Gs.append(G)
 
-    K = np.array([1/3, 1/3, 0.0])
-    all_orb_types = [("X2", "pz", "up", "X1p", "pz", "up")]
-    all_H_vals = H_klat_Glat(K, Gs, dps, all_orb_types, soc)
+    ks = [(1/3, 1/3, 0)]
+    kGs = list(itertools.product(ks, Gs))
+
+    all_H_vals = H_klat_Glat(dps, kGs)
 
     Gas, Gbs = [], []
     H_K_re_vals, H_K_im_vals = [], []
-    for (G, orb_type), val in all_H_vals.items():
-        if orb_type == all_orb_types[0]:
-            H_K_re_vals.append(val.real)
-            H_K_im_vals.append(val.imag)
+    for (k, G), val in all_H_vals.items():
+        if k == ks[0]:
+            H_K_re_vals.append(val[i_index, j_index].real)
+            H_K_im_vals.append(val[i_index, j_index].imag)
             Gas.append(float(G[0]))
             Gbs.append(float(G[1]))
 
