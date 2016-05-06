@@ -42,37 +42,46 @@ def H_klat_Glat(dps, kGs):
         region_integral_vals = p.starmap(region_integral, rint_args)
 
     # Collect region integrals into totals.
-    integral_totals = {}
-    for region_dict in region_integral_vals:
-        for (k, G), val in region_dict.items():
-            if (k, G) not in integral_totals:
-                integral_totals[(k, G)] = val
+    integral_totals = []
+    for kG_i in range(len(kGs)):
+        integral_totals.append(None)
+
+    for region_list in region_integral_vals:
+        for kG_index, kG_val in enumerate(region_list):
+            if integral_totals[kG_index] is None:
+                integral_totals[kG_index] = kG_val
             else:
-                integral_totals[(k, G)] += val
+                integral_totals[kG_index] += kG_val
 
     return integral_totals
 
 def region_integral(region_indices, delta_a, delta_b, kGs, work, dps):
+    print(region_indices)
+    region_sums = []
+    for kG_index in range(len(kGs)):
+        region_sums.append(None)
+
     # Sum up the integrand values for each boundary point of the region.
-    region_sums = {}
     for d_index in region_indices:
         d, prefix = dps[d_index]
         Hr = get_Hr(work, prefix)
 
-        for k, G in kGs:
+        for kG_index in range(len(kGs)):
+            k, G = kGs[kG_index]
             Hk = Hk_recip(k, Hr)
             Gdotd = 2*np.pi*(G[0]*d[0] + G[1]*d[1])
             efac = np.exp(1j*Gdotd)
             val = Hk * efac
-            if (k, G) not in region_sums:
-                region_sums[(k, G)] = val
+            if region_sums[kG_index] is None:
+                region_sums[kG_index] = val
             else:
-                region_sums[(k, G)] += val
+                region_sums[kG_index] += val
 
     # Calculate this region's contribution to the integral.
-    integrals = {}
-    for k, G in kGs:
-        integrals[(k, G)] = delta_a * delta_b * region_sums[(k, G)] / 4
+    integrals = []
+    for kG_index in range(len(kGs)):
+        integral_val = delta_a * delta_b * region_sums[kG_index] / 4
+        integrals.append(integral_val)
 
     return integrals
 
@@ -159,12 +168,14 @@ def _main():
 
     Gas, Gbs = [], []
     H_K_re_vals, H_K_im_vals = [], []
-    for (k, G), val in all_H_vals.items():
-        if k == ks[0]:
-            H_K_re_vals.append(val[i_index, j_index].real)
-            H_K_im_vals.append(val[i_index, j_index].imag)
-            Gas.append(float(G[0]))
-            Gbs.append(float(G[1]))
+    for kG_index, val in enumerate(all_H_vals):
+        k, G = kGs[kG_index]
+        # Only one k used.
+        # TODO - check k?
+        H_K_re_vals.append(val[i_index, j_index].real)
+        H_K_im_vals.append(val[i_index, j_index].imag)
+        Gas.append(float(G[0]))
+        Gbs.append(float(G[1]))
 
     plt.scatter(Gas, Gbs, c=H_K_re_vals, cmap='viridis', s=50, edgecolors="none")
     plt.colorbar()

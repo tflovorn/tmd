@@ -1,6 +1,7 @@
 import os
 import itertools
 import numpy as np
+import matplotlib.pyplot as plt
 from tmd.bilayer.dfourier import H_klat_Glat
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.dgrid import get_prefixes
@@ -86,9 +87,12 @@ def approximant_Gs(D_2D, Gcut, Gcut_cart):
             finished_G1, finished_G2 = _eval_G_cutoff(G1, G2, D_2D, Gcut, Gcut_cart)
             if not finished_G2:
                 Gs.append([G1, G2])
-                # TODO - changed this from and - check that or is correct here
-                if G1 != 0 or G2 != 0:
+                if G1 != 0 and G2 != 0:
                     Gs.append([-G1, -G2])
+                if G1 != 0:
+                    Gs.append([-G1, G2])
+                if G2 != 0:
+                    Gs.append([G1, -G2])
             G2 += 1
 
         G1 += 1
@@ -97,47 +101,114 @@ def approximant_Gs(D_2D, Gcut, Gcut_cart):
 
 def moire_Hamiltonian(dps, ktildes, D_2D, epsilon, theta, Gcut, Gcut_cart=False):
     moire_G_vecs = moire_Gs(D_2D, epsilon, theta)
-    print(moire_G_vecs)
+    print("moire_Gs", moire_G_vecs)
     approximant_G_vecs = approximant_Gs(D_2D, Gcut, Gcut_cart)
-    print(approximant_G_vecs)
+    print("approximant_Gs", approximant_G_vecs)
     num_Gt = len(moire_G_vecs)
     # Want to take Cartesian product of: (ktildes, moire_Gs, moire_Gs, approximant_Gs).
     # This gives a list of (ktilde, Gtilde, Gtilde_prime, G2) tuples.
     # Then convert this to input to H_A(k:G).
-    HA_input_components = list(itertools.product(ktildes, moire_G_vecs, moire_G_vecs, approximant_G_vecs))
-    kGs = []
-
+    HA_input_components = []
+    for kt in ktildes:
+        kt_Gparts = list(itertools.product(moire_G_vecs, moire_G_vecs, approximant_G_vecs))
+        HA_input_components.append(kt_Gparts)
+    
     S = np.array([[epsilon, theta], [-theta, epsilon]])
     Sinv = np.linalg.inv(S)
 
-    for ktilde, Gtilde, Gtilde_prime, G2 in HA_input_components:
-        Gt_expanded = list(np.array(Gtilde))
-        Gt_expanded.append(0.0)
-        k = tuple(np.array(ktilde) + Gt_expanded)
+    kGs = []
+    for kt_index, ktilde in enumerate(ktildes):
+        for Gtilde, Gtilde_prime, G2 in HA_input_components[kt_index]:
+            Gt_expanded = list(np.array(Gtilde))
+            Gt_expanded.append(0.0)
+            k = tuple(np.array(ktilde) + Gt_expanded)
 
-        Gt_arg = np.array(Gtilde_prime) - np.array(Gtilde) + np.array(G2)
-        G = tuple(np.dot(Sinv, Gt_arg))
-        kGs.append([k, G])
+            Gt_arg = np.array(Gtilde_prime) - np.array(Gtilde) + np.array(G2)
+            G = tuple(np.dot(Sinv, Gt_arg))
+            kGs.append((k, G))
 
-    Hks = H_klat_Glat(dps, kGs)
-    num_bands = Hks[0].shape[0]
+    print("n_ks", len(ktildes))
+    print("n_moire_Gs", len(moire_G_vecs))
+    print("n_approx_Gs", len(approximant_G_vecs))
+    print("n_kGs", len(kGs))
+
+    HkGs = H_klat_Glat(dps, kGs)
+    num_bands = HkGs[0].shape[0]
+    print("num_bands", num_bands)
 
     Hk_moires = []
     num_bands_moire = num_bands * num_Gt
     for i in range(len(ktildes)):
         Hk_moires.append(np.zeros([num_bands_moire, num_bands_moire], dtype=np.complex128))
 
-    for Hk, (ktilde, Gtilde, Gtilde_prime, G2) in zip(Hks, HA_input_components):
-        Gt_index = moire_G_vecs.index(Gtilde)
-        Gtp_index = moire_G_vecs.index(Gtilde_prime)
-        k_index = ktildes.index(ktilde)
+    kG_index = 0
+    for kt_index in range(len(ktildes)):
+        for Gtilde, Gtilde_prime, G2 in HA_input_components[kt_index]:
+            HkG = HkGs[kG_index]
+            Gt_index = moire_G_vecs.index(Gtilde)
+            Gtp_index = moire_G_vecs.index(Gtilde_prime)
 
-        Gt_start, Gt_stop = Gt_index*num_bands, (Gt_index + 1)*num_bands
-        Gtp_start, Gtp_stop = Gtp_index*num_bands, (Gtp_index + 1)*num_bands
-        # Add contribution to this H(k) [Gt, Gtp] block corresponding to G2.
-        Hk_moires[k_index][Gt_start:Gt_stop, Gtp_start:Gtp_stop] += Hk
-
+            Gt_start, Gt_stop = Gt_index*num_bands, (Gt_index + 1)*num_bands
+            Gtp_start, Gtp_stop = Gtp_index*num_bands, (Gtp_index + 1)*num_bands
+            # Add contribution to this H(k) [Gt, Gtp] block corresponding to G2.
+            Hk_moires[kt_index][Gt_start:Gt_stop, Gtp_start:Gtp_stop] += HkG
+            kG_index += 1
+       
     return Hk_moires
+
+def make_kpath(kpoints, ks_per_interval):
+    kpath = []
+    for point_index, point in enumerate(kpoints):
+        if point_index == 0:
+            point_3D = (point[0], point[1], 0.0)
+            kpath.append(point_3D)
+        
+        if point_index == len(kpoints) - 1:
+            break
+
+        diff = np.array(kpoints[point_index + 1]) - np.array(point)
+        step = diff / ks_per_interval
+        for k_i in range(1, ks_per_interval+1):
+            next_point = point + step*k_i
+            next_point_3D = (next_point[0], next_point[1], 0.0)
+            kpath.append(next_point_3D)
+ 
+    return kpath
+
+def reverse_index(ls):
+    """Reverse the order of indices in ls, which is a list of lists of the form
+    ls[A][B]. Assumes the inner list has the same length for all A.
+    Returns a list of lists where the corresponding element is ls[B][A].
+    """
+    rev = []
+    if len(ls) == 0:
+        return rev
+
+    len_second = len(ls[0])
+    for B in range(len_second):
+        rev.append([])
+
+    for ls_A in ls:
+        for B, val_B in enumerate(ls_A):
+            rev[B].append(val_B)
+
+    return rev
+
+def plot_Hk_moire(Hk_moires):
+    evals_by_k = []
+    for Hk in Hk_moires:
+        evals = np.linalg.eigvalsh(Hk)
+        evals_by_k.append(evals)
+
+    evals_by_bands = reverse_index(evals_by_k)
+
+    for band in evals_by_bands:
+        xs = range(len(Hk_moires)) # TODO
+        plt.plot(xs, band, 'k-')
+
+    # TODO
+    plt.ylim(-2.0, 4.0)
+    plt.savefig("moire.png", bbox_inches='tight', dpi=500)
 
 def _main():
     gconf = global_config()
@@ -153,13 +224,19 @@ def _main():
     D = D_from_scf(scf_0_path)
     D_2D = D[0:2, 0:2]
 
-    ktildes = [(1/3, 1/3, 0)]
-    epsilon = 1/3
+    kpoints = [(0, 0), (1/2, 0), (1/3, 1/3), (0, 0)]
+    ks_per_interval = 10
+    ktildes = make_kpath(kpoints, ks_per_interval)
+    #ktildes = [(1/3, 1/3, 0)]
+
+    epsilon = 1/2
     theta = 0.0
-    Gcut = 30
+    Gcut = 2
     Gcut_cart = False
 
     Hk_moires = moire_Hamiltonian(dps, ktildes, D_2D, epsilon, theta, Gcut, Gcut_cart)
+
+    plot_Hk_moire(Hk_moires)
 
 if __name__ == "__main__":
     _main()
