@@ -1,3 +1,25 @@
+# Workflow description
+
+Running the calculation:
+
+`python3 tmd/bilayer/dgrid.py`: prepare inputs for grid of d's and submit DFT calculation for all d's (scf, nscf bands, nscf).
+
+`python3 tmd/bilayer/submit_pw_post.py`: submit post-processing calculation for all d's (make bands data file, run pw2wannier90).
+
+`sbatch work_base/global_prefix_launcher`: run Wannier90 for all d's
+
+Analysis of results:
+
+`python3 tmd/bilayer/plot_ds.py`: plot properties (energy, gap, matrix elements) as function of d
+
+`python3 tmd/bilayer/plotBands.py`: plot bands as function of d
+
+`python3 tmd/bilayer/dfourier.py`: plot matrix elements as function of G
+
+`python3 tmd/bilayer/moire.py`: plot moire bands
+
+TODO -- make workflow more friendly/repeatable/less error-prone by removing hard-coded parameters and use a job config file instead.
+
 # Dependencies and installation: LS5
 
 Install python3:
