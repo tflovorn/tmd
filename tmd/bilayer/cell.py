@@ -43,7 +43,7 @@ def symbols_from_2H(atoms):
     # Consistent M, X, X order.
     return syms[0], syms[1]
 
-def bilayer_setup(atoms_A, atoms_B=None, c_bulk=None, d_a=None, d_b=None, c_sep_input=None):
+def bilayer_setup(atoms_A, atoms_B=None, c_bulk=None, d_a=None, d_b=None, c_sep_input=None, ordering="2H"):
     # Choose lattice constant from A.
     a = a_from_2H(atoms_A)
 
@@ -97,12 +97,24 @@ def bilayer_setup(atoms_A, atoms_B=None, c_bulk=None, d_a=None, d_b=None, c_sep_
     X1_A = -c_sep/2.0 - h_A
 
     # M_A, X1_A, X2_A, M_B, X1_B, X2_B
-    lat_pos = [[0.0, 0.0],
-               [1/3, 2/3],
-               [1/3, 2/3],
-               [(0.0+d_a) % 1, (0.0+d_b) % 1],
-               [(1/3+d_a) % 1, (2/3+d_b) % 1],
-               [(1/3+d_a) % 1, (2/3+d_b) % 1]]
+    if ordering == "2H":
+        # BAB/ABA
+        lat_pos = [[0.0, 0.0], # M = A
+                   [1/3, 2/3], # X = B
+                   [1/3, 2/3],
+                   [(1/3+d_a) % 1, (1/3+d_b) % 1], # Mp = B
+                   [(0.0+d_a) % 1, (0.0+d_b) % 1], # Xp = A
+                   [(0.0+d_a) % 1, (0.0+d_b) % 1]]
+    elif ordering == "2H_same":
+        # BAB/BAB
+        lat_pos = [[0.0, 0.0], # M = A
+                   [1/3, 2/3], # X = B
+                   [1/3, 2/3],
+                   [(0.0+d_a) % 1, (0.0+d_b) % 1], # Mp = A
+                   [(1/3+d_a) % 1, (2/3+d_b) % 1], # Xp = B
+                   [(1/3+d_a) % 1, (2/3+d_b) % 1]]
+    else:
+        raise ValueError("Ordering {} not recognized".format(ordering))
 
     cartpos_2D = []
     for pos in lat_pos:

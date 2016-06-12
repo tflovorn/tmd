@@ -10,7 +10,7 @@ from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile, write_launcherfiles, write_job_group_files
 from tmd.queue.internal import enqueue
 
-def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, c_sep=None, soc=True, xc="lda"):
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, c_sep=None, soc=True, xc="lda", ordering="2H"):
     if sym_B is None:
         d_as = [0.0]
         d_bs = [0.0]
@@ -23,7 +23,8 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=
 
     for d_a in d_as:
         for d_b in d_bs:
-            material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk, d_a, d_b, c_sep, soc, xc, atoms_A, atoms_B)
+            material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk,
+                    d_a, d_b, c_sep, soc, xc, atoms_A, atoms_B, ordering)
 
             inputs[(d_a, d_b)] = {"material": material}
             for calc_type in ["scf", "nscf", "bands"]:
@@ -197,7 +198,7 @@ def _main():
     gconf = global_config()
 
     #c_sep, num_d_a, num_d_b = 3.0, 12, 12
-    num_d_a, num_d_b = 8, 8
+    num_d_a, num_d_b = 15, 15
     #c_sep, num_d_a, num_d_b = None, None, None
 
     soc = False
@@ -205,11 +206,13 @@ def _main():
 
     symA, symB = "MoS2", "WS2"
     #symA, symB = "MoS2", None
+    ordering = "2H"
 
     c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
     c_bulk = c_bulk_values[symA]
 
-    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b, c_sep=None, soc=soc, xc=xc)
+    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b,
+            c_sep=None, soc=soc, xc=xc, ordering=ordering)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 
@@ -233,7 +236,7 @@ def _main():
             "inner_min": -8.0, "inner_max": 3.0}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
-    submit_dgrid_wan_setup(base_path, config, prefix_groups)
+    #submit_dgrid_wan_setup(base_path, config, prefix_groups)
     
 if __name__ == "__main__":
     _main()
