@@ -194,7 +194,8 @@ def submit_dgrid_wan_setup(base_path, config, prefix_groups):
         enqueue(dv_config)
 
 def _main():
-    parser = argparse.ArgumentParser("Build and run calculation on grid of d's")
+    parser = argparse.ArgumentParser("Build and run calculation on grid of d's",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--symA", type=str, default="MoS2",
             help="Atomic composition of bottom layer")
     parser.add_argument("--symB", type=str, default="WS2",
