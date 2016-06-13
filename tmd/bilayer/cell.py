@@ -105,7 +105,7 @@ def bilayer_setup(atoms_A, atoms_B=None, c_bulk=None, d_a=None, d_b=None, c_sep_
                    [(1/3+d_a) % 1, (1/3+d_b) % 1], # Mp = B
                    [(0.0+d_a) % 1, (0.0+d_b) % 1], # Xp = A
                    [(0.0+d_a) % 1, (0.0+d_b) % 1]]
-    elif ordering == "2H_same":
+    elif ordering == "2H_top":
         # BAB/BAB
         lat_pos = [[0.0, 0.0], # M = A
                    [1/3, 2/3], # X = B

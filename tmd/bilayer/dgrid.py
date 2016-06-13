@@ -1,8 +1,9 @@
-import numpy as np
+import argparse
 import math
 import os
-import yaml
 from copy import deepcopy
+import numpy as np
+import yaml
 from tmd.bilayer.material import get_material
 from tmd.bilayer.bilayer_util import _base_dir, global_config
 from tmd.pwscf.build import build_qe, build_bands, build_pw2wan
@@ -193,26 +194,40 @@ def submit_dgrid_wan_setup(base_path, config, prefix_groups):
         enqueue(dv_config)
 
 def _main():
+    parser = argparse.ArgumentParser("Build and run calculation on grid of d's")
+    parser.add_argument("--symA", type=str, default="MoS2",
+            help="Atomic composition of bottom layer")
+    parser.add_argument("--symB", type=str, default="WS2",
+            help="Atomic composition of top layer")
+    parser.add_argument("--monolayer", action="store_true",
+            help="Use monolayer system instead of bilayer")
+    parser.add_argument("--ordering", type=str, default="2H",
+            help="Ordering of atoms: '2H' -> BAB/ABA; '2H_top' -> BAB/BAB")
+    parser.add_argument("--c_sep", type=float, default=None,
+            help="Separation between layers (use value from bilayer of symA if not specified)")
+    parser.add_argument("--soc", action="store_true",
+            help="Use spin-orbit coupling")
+    parser.add_argument("--xc", type=str, default="pbe",
+            help="Exchange-correlation functional (lda or pbe)")
+    parser.add_argument("--num_d_a", type=int, default=3,
+            help="Number of d's (shifts) along the a-axis")
+    parser.add_argument("--num_d_b", type=int, default=3,
+            help="Number of d's (shifts) along the b-axis")
+    args = parser.parse_args()
+
+    symA, symB = args.symA, args.symB
+    if args.monolayer:
+        symB = None
+
     base = _base_dir()
     db_path = os.path.join(base, "c2dm.db")
     gconf = global_config()
 
-    #c_sep, num_d_a, num_d_b = 3.0, 12, 12
-    num_d_a, num_d_b = 15, 15
-    #c_sep, num_d_a, num_d_b = None, None, None
-
-    soc = False
-    xc = "lda"
-
-    symA, symB = "MoS2", "WS2"
-    #symA, symB = "MoS2", None
-    ordering = "2H"
-
     c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
     c_bulk = c_bulk_values[symA]
 
-    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, num_d_a, num_d_b,
-            c_sep=None, soc=soc, xc=xc, ordering=ordering)
+    dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, args.num_d_a, args.num_d_b,
+            c_sep=args.c_sep, soc=args.soc, xc=args.xc, ordering=args.ordering)
     base_path = os.path.expandvars(gconf["work_base"])
     write_dgrid(base_path, dgrid)
 
