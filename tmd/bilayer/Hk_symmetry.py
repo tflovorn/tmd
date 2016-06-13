@@ -51,6 +51,24 @@ def _main():
         dz2_Mp_i = orbital_index(atom_Hr_order, "Mp", "dz2", "up", soc=False)
 
         Hr = get_Hr(work, prefix)
+
+        # H(R = 0)
+        H0 = Hr[(0, 0, 0)][0]/Hr[(0, 0, 0)][1]
+        Hr_dp2_M_dp2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] + H0[dxy_M_i, dxy_Mp_i]
+                + 1j*H0[dx2y2_M_i, dxy_Mp_i] - 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
+
+        Hr_dm2_M_dm2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] + H0[dxy_M_i, dxy_Mp_i]
+                - 1j*H0[dx2y2_M_i, dxy_Mp_i] + 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
+
+        Hr_dp2_M_dm2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] - H0[dxy_M_i, dxy_Mp_i]
+                - 1j*H0[dx2y2_M_i, dxy_Mp_i] - 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
+
+        Hr_dm2_M_dp2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] - H0[dxy_M_i, dxy_Mp_i]
+                + 1j*H0[dx2y2_M_i, dxy_Mp_i] + 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
+
+        Hr_dz2_M_dz2_Mp = H0[dz2_M_i, dz2_Mp_i]
+
+        # H(K)
         HK = Hk_recip(K, Hr)
 
         dp2_M_dp2_Mp = (HK[dx2y2_M_i, dx2y2_Mp_i] + HK[dxy_M_i, dxy_Mp_i]
@@ -68,11 +86,18 @@ def _main():
         dz2_M_dz2_Mp = HK[dz2_M_i, dz2_Mp_i]
 
         print("i_d = {}, prefix = {}".format(str(i_d), prefix))
+        print("H(r = 0, 0, 0)[+,+] = {}".format(Hr_dp2_M_dp2_Mp))
+        print("H(r = 0, 0, 0)[-,-] = {}".format(Hr_dm2_M_dm2_Mp))
+        print("H(r = 0, 0, 0)[+,-] = {}".format(Hr_dp2_M_dm2_Mp))
+        print("H(r = 0, 0, 0)[-,+] = {}".format(Hr_dm2_M_dp2_Mp))
+        print("H(r = 0, 0, 0)[z2,z2] = {}".format(Hr_dz2_M_dz2_Mp))
+
         print("<d_+2^M|H(K)|d_+2^M'> = {}".format(str(dp2_M_dp2_Mp)))
         print("<d_-2^M|H(K)|d_-2^M'> = {}".format(str(dm2_M_dm2_Mp)))
         print("<d_+2^M|H(K)|d_-2^M'> = {}".format(str(dp2_M_dm2_Mp)))
         print("<d_-2^M|H(K)|d_+2^M'> = {}".format(str(dm2_M_dp2_Mp)))
         print("<d_z2^M|H(K)|d_z2^M'> = {}".format(str(dz2_M_dz2_Mp)))
+        print("===================")
 
 if __name__ == "__main__":
     _main()
