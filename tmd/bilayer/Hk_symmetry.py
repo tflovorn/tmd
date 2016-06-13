@@ -15,6 +15,32 @@ def find_d_val(dps, d_val):
     # Only get here if no matching d is found in dps.
     raise ValueError("d_val not found")
 
+def get_H_orbital_vals(H, work, prefix):
+    atom_Hr_order = get_atom_order(work, prefix)
+    dxy_M_i = orbital_index(atom_Hr_order, "M", "dxy", "up", soc=False) # spin ignored for no soc
+    dxy_Mp_i = orbital_index(atom_Hr_order, "Mp", "dxy", "up", soc=False)
+    dx2y2_M_i = orbital_index(atom_Hr_order, "M", "dx2-y2", "up", soc=False)
+    dx2y2_Mp_i = orbital_index(atom_Hr_order, "Mp", "dx2-y2", "up", soc=False)
+    dz2_M_i = orbital_index(atom_Hr_order, "M", "dz2", "up", soc=False)
+    dz2_Mp_i = orbital_index(atom_Hr_order, "Mp", "dz2", "up", soc=False)
+
+    vals = {}
+    vals["dp2_M_dp2_Mp"] = (H[dx2y2_M_i, dx2y2_Mp_i] + H[dxy_M_i, dxy_Mp_i]
+            + 1j*H[dx2y2_M_i, dxy_Mp_i] - 1j*H[dxy_M_i, dx2y2_Mp_i])/2
+
+    vals["dm2_M_dm2_Mp"] = (H[dx2y2_M_i, dx2y2_Mp_i] + H[dxy_M_i, dxy_Mp_i]
+            - 1j*H[dx2y2_M_i, dxy_Mp_i] + 1j*H[dxy_M_i, dx2y2_Mp_i])/2
+
+    vals["dp2_M_dm2_Mp"] = (H[dx2y2_M_i, dx2y2_Mp_i] - H[dxy_M_i, dxy_Mp_i]
+            - 1j*H[dx2y2_M_i, dxy_Mp_i] - 1j*H[dxy_M_i, dx2y2_Mp_i])/2
+
+    vals["dm2_M_dp2_Mp"] = (H[dx2y2_M_i, dx2y2_Mp_i] - H[dxy_M_i, dxy_Mp_i]
+            + 1j*H[dx2y2_M_i, dxy_Mp_i] + 1j*H[dxy_M_i, dx2y2_Mp_i])/2
+
+    vals["dz2_M_dz2_Mp"] = H[dz2_M_i, dz2_Mp_i]
+
+    return vals
+
 def _main():
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
@@ -39,64 +65,36 @@ def _main():
     else:
         raise ValueError("unrecognized ordering")
 
-    K = (1/3, 1/3, 0.0)
+    Ks = (("K0", (1/3, 1/3, 0.0)), ("K1", (-2/3, 1/3, 0.0)), ("K2", (1/3, -2/3, 0.0)))
 
     for i_d, prefix in enumerate((d0_prefix, d1_prefix, d2_prefix)):
-        atom_Hr_order = get_atom_order(work, prefix)
-        dxy_M_i = orbital_index(atom_Hr_order, "M", "dxy", "up", soc=False) # spin ignored for no soc
-        dxy_Mp_i = orbital_index(atom_Hr_order, "Mp", "dxy", "up", soc=False)
-        dx2y2_M_i = orbital_index(atom_Hr_order, "M", "dx2-y2", "up", soc=False)
-        dx2y2_Mp_i = orbital_index(atom_Hr_order, "Mp", "dx2-y2", "up", soc=False)
-        dz2_M_i = orbital_index(atom_Hr_order, "M", "dz2", "up", soc=False)
-        dz2_Mp_i = orbital_index(atom_Hr_order, "Mp", "dz2", "up", soc=False)
-
         Hr = get_Hr(work, prefix)
 
         # H(R = 0)
         H0 = Hr[(0, 0, 0)][0]/Hr[(0, 0, 0)][1]
-        Hr_dp2_M_dp2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] + H0[dxy_M_i, dxy_Mp_i]
-                + 1j*H0[dx2y2_M_i, dxy_Mp_i] - 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
-
-        Hr_dm2_M_dm2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] + H0[dxy_M_i, dxy_Mp_i]
-                - 1j*H0[dx2y2_M_i, dxy_Mp_i] + 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
-
-        Hr_dp2_M_dm2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] - H0[dxy_M_i, dxy_Mp_i]
-                - 1j*H0[dx2y2_M_i, dxy_Mp_i] - 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
-
-        Hr_dm2_M_dp2_Mp = (H0[dx2y2_M_i, dx2y2_Mp_i] - H0[dxy_M_i, dxy_Mp_i]
-                + 1j*H0[dx2y2_M_i, dxy_Mp_i] + 1j*H0[dxy_M_i, dx2y2_Mp_i])/2
-
-        Hr_dz2_M_dz2_Mp = H0[dz2_M_i, dz2_Mp_i]
+        H0_vals = get_H_orbital_vals(H0, work, prefix)
 
         # H(K)
-        HK = Hk_recip(K, Hr)
-
-        dp2_M_dp2_Mp = (HK[dx2y2_M_i, dx2y2_Mp_i] + HK[dxy_M_i, dxy_Mp_i]
-                + 1j*HK[dx2y2_M_i, dxy_Mp_i] - 1j*HK[dxy_M_i, dx2y2_Mp_i])/2
-
-        dm2_M_dm2_Mp = (HK[dx2y2_M_i, dx2y2_Mp_i] + HK[dxy_M_i, dxy_Mp_i]
-                - 1j*HK[dx2y2_M_i, dxy_Mp_i] + 1j*HK[dxy_M_i, dx2y2_Mp_i])/2
-
-        dp2_M_dm2_Mp = (HK[dx2y2_M_i, dx2y2_Mp_i] - HK[dxy_M_i, dxy_Mp_i]
-                - 1j*HK[dx2y2_M_i, dxy_Mp_i] - 1j*HK[dxy_M_i, dx2y2_Mp_i])/2
-
-        dm2_M_dp2_Mp = (HK[dx2y2_M_i, dx2y2_Mp_i] - HK[dxy_M_i, dxy_Mp_i]
-                + 1j*HK[dx2y2_M_i, dxy_Mp_i] + 1j*HK[dxy_M_i, dx2y2_Mp_i])/2
-
-        dz2_M_dz2_Mp = HK[dz2_M_i, dz2_Mp_i]
+        Hk_vals = {}
+        for K_label, K in Ks:
+            HK = Hk_recip(K, Hr)
+            Hk_vals[K_label] = get_H_orbital_vals(HK, work, prefix)
 
         print("i_d = {}, prefix = {}".format(str(i_d), prefix))
-        print("H(r = 0, 0, 0)[+,+] = {}".format(Hr_dp2_M_dp2_Mp))
-        print("H(r = 0, 0, 0)[-,-] = {}".format(Hr_dm2_M_dm2_Mp))
-        print("H(r = 0, 0, 0)[+,-] = {}".format(Hr_dp2_M_dm2_Mp))
-        print("H(r = 0, 0, 0)[-,+] = {}".format(Hr_dm2_M_dp2_Mp))
-        print("H(r = 0, 0, 0)[z2,z2] = {}".format(Hr_dz2_M_dz2_Mp))
+        print("H(r = 0, 0, 0)[+,+] = {}".format(str(H0_vals["dp2_M_dp2_Mp"])))
+        print("H(r = 0, 0, 0)[-,-] = {}".format(str(H0_vals["dm2_M_dm2_Mp"])))
+        print("H(r = 0, 0, 0)[+,-] = {}".format(str(H0_vals["dp2_M_dm2_Mp"])))
+        print("H(r = 0, 0, 0)[-,+] = {}".format(str(H0_vals["dm2_M_dp2_Mp"])))
+        print("H(r = 0, 0, 0)[z2,z2] = {}".format(str(H0_vals["dz2_M_dz2_Mp"])))
 
-        print("<d_+2^M|H(K)|d_+2^M'> = {}".format(str(dp2_M_dp2_Mp)))
-        print("<d_-2^M|H(K)|d_-2^M'> = {}".format(str(dm2_M_dm2_Mp)))
-        print("<d_+2^M|H(K)|d_-2^M'> = {}".format(str(dp2_M_dm2_Mp)))
-        print("<d_-2^M|H(K)|d_+2^M'> = {}".format(str(dm2_M_dp2_Mp)))
-        print("<d_z2^M|H(K)|d_z2^M'> = {}".format(str(dz2_M_dz2_Mp)))
+        for K_label, K in Ks:
+            print("------------")
+            print("<d_+2^M|H({})|d_+2^M'> = {}".format(K_label, str(Hk_vals[K_label]["dp2_M_dp2_Mp"])))
+            print("<d_-2^M|H({})|d_-2^M'> = {}".format(K_label, str(Hk_vals[K_label]["dm2_M_dm2_Mp"])))
+            print("<d_+2^M|H({})|d_-2^M'> = {}".format(K_label, str(Hk_vals[K_label]["dp2_M_dm2_Mp"])))
+            print("<d_-2^M|H({})|d_+2^M'> = {}".format(K_label, str(Hk_vals[K_label]["dm2_M_dp2_Mp"])))
+            print("<d_z2^M|H({})|d_z2^M'> = {}".format(K_label, str(Hk_vals[K_label]["dz2_M_dz2_Mp"])))
+
         print("===================")
 
 if __name__ == "__main__":
