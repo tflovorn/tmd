@@ -208,7 +208,7 @@ def _main():
             help="Separation between layers (use value from bilayer of symA if not specified)")
     parser.add_argument("--soc", action="store_true",
             help="Use spin-orbit coupling")
-    parser.add_argument("--xc", type=str, default="pbe",
+    parser.add_argument("--xc", type=str, default="lda",
             help="Exchange-correlation functional (lda or pbe)")
     parser.add_argument("--num_d_a", type=int, default=3,
             help="Number of d's (shifts) along the a-axis")
