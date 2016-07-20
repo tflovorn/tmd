@@ -133,12 +133,20 @@ def verify_Hr_orders_identical(work, prefixes):
                 raise ValueError("atom orders vary between ds")
 
 def _main():
+    parser = ArgumentParser("Fourier components")
+    parser.add_argument("--subdir", type=str, default=None,
+            help="Subdirectory under work_base where calculation was run")
+    parser.add_argument("--global_prefix", type=str, default="MoS2_WS2",
+            help="Prefix for calculation")
+    args = parser.parse_args()
+
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
+    if args.subdir is not None:
+        work = os.path.join(work, args.subdir)
     
-    global_prefix = "MoS2_WS2"
     soc = False
-    prefixes = get_prefixes(work, global_prefix)
+    prefixes = get_prefixes(work, args.global_prefix)
     ds = ds_from_prefixes(prefixes)
     ds, prefixes = wrap_cell(ds, prefixes)
     dps = sorted_d_group(ds, prefixes)

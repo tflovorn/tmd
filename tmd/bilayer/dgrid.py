@@ -196,6 +196,8 @@ def submit_dgrid_wan_setup(base_path, config, prefix_groups):
 def _main():
     parser = argparse.ArgumentParser("Build and run calculation on grid of d's",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--subdir", type=str, default=None,
+            help="Subdirectory under work_base to run calculation")
     parser.add_argument("--symA", type=str, default="MoS2",
             help="Atomic composition of bottom layer")
     parser.add_argument("--symB", type=str, default="WS2",
@@ -220,8 +222,8 @@ def _main():
     if args.monolayer:
         symB = None
 
-    base = _base_dir()
-    db_path = os.path.join(base, "c2dm.db")
+    tmd_base = _base_dir()
+    db_path = os.path.join(tmd_base, "c2dm.db")
     gconf = global_config()
 
     c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
@@ -229,7 +231,11 @@ def _main():
 
     dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, args.num_d_a, args.num_d_b,
             c_sep=args.c_sep, soc=args.soc, xc=args.xc, ordering=args.ordering)
+
     base_path = os.path.expandvars(gconf["work_base"])
+    if args.subdir is not None:
+        base_path = os.path.join(base_path, args.subdir)
+
     write_dgrid(base_path, dgrid)
 
     #config = {"machine": "__local__", "wannier": True}
@@ -252,7 +258,7 @@ def _main():
             "inner_min": -8.0, "inner_max": 3.0}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
-    #submit_dgrid_wan_setup(base_path, config, prefix_groups)
+    submit_dgrid_wan_setup(base_path, config, prefix_groups)
     
 if __name__ == "__main__":
     _main()

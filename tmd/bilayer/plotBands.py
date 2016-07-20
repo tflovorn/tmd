@@ -8,12 +8,17 @@ from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.dgrid import get_prefixes
 
 def _main():
+    parser = argparse.ArgumentParser(description="Plot TMD band structure result")
+    parser.add_argument("--subdir", type=str, default=None,
+            help="Subdirectory under work_base where calculation was run")
+    parser.add_argument('--global_prefix', type=str, default="MoS2_WS2",
+            help="Calculation global prefix")
+    args = parser.parse_args()
+
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
-
-    parser = argparse.ArgumentParser(description="Plot TMD result")
-    parser.add_argument('global_prefix', type=str, help="Calculation global prefix")
-    args = parser.parse_args()
+    if args.subdir is not None:
+        work = os.path.join(work, args.subdir)
 
     prefixes = get_prefixes(work, args.global_prefix)
 

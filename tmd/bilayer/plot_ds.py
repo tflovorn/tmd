@@ -299,11 +299,19 @@ def plot_d_vals(plot_name, title, dps, values):
     plt.clf()
 
 def _main():
+    parser = argparse.ArgumentParser(description="Plot various quantities as function of displacement")
+    parser.add_argument("--subdir", type=str, default=None,
+            help="Subdirectory under work_base where calculation was run")
+    parser.add_argument('--global_prefix', type=str, default="MoS2_WS2",
+            help="Calculation global prefix")
+    args = parser.parse_args()
+
     gconf = global_config()
     work = os.path.expandvars(gconf["work_base"])
+    if args.subdir is not None:
+        work = os.path.join(work, args.subdir)
     
-    global_prefix = "MoS2_WS2"
-    prefixes = get_prefixes(work, global_prefix)
+    prefixes = get_prefixes(work, args.global_prefix)
     ds = ds_from_prefixes(prefixes)
 
     ds, prefixes = wrap_cell(ds, prefixes)
@@ -313,7 +321,7 @@ def _main():
     energies_rel_meV = energies_relative_to(energies, dps, (0.0, 0.0))
 
     E_title = "$\\Delta E$ [meV]"
-    E_plot_name = "{}_energies".format(global_prefix)
+    E_plot_name = "{}_energies".format(args.global_prefix)
     plot_d_vals(E_plot_name, E_title, dps, energies_rel_meV)
 
     soc = True
@@ -321,7 +329,7 @@ def _main():
 
     for label, this_vals in Hk_vals.items():
         title = label
-        plot_name = "{}_{}".format(global_prefix, label)
+        plot_name = "{}_{}".format(args.global_prefix, label)
         plot_d_vals(plot_name, title, dps, this_vals)
 
     na, nb = 16, 16
@@ -330,7 +338,7 @@ def _main():
     gaps = find_gaps(work, dps, E_below_fermi, E_above_fermi, num_dos, na, nb)
 
     gap_plot_title = "Gaps [eV]"
-    gap_plot_name = "{}_gaps".format(global_prefix)
+    gap_plot_name = "{}_gaps".format(args.global_prefix)
     plot_d_vals(gap_plot_name, gap_plot_title, dps, gaps)
 
 if __name__ == "__main__":
