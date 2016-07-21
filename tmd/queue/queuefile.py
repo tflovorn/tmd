@@ -124,7 +124,11 @@ def _write_queuefile_ls5(config):
         update_dis = os.path.join(tmd_base, "tmd", "wannier", "update_dis.py")
         outer_min, outer_max = str(config["outer_min"]), str(config["outer_max"])
         inner_min, inner_max = str(config["inner_min"]), str(config["inner_max"])
-        qf.append("python3 '{}' '{}' {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max))
+        py_str = "python3 '{}' '{}' {} {} {} {}".format(update_dis, prefix, outer_min, outer_max, inner_min, inner_max)
+        if config["subdir"] is not None:
+            py_str = py_str + " --subdir {}".format(config["subdir"])
+
+        qf.append(py_str)
         qf.append("cd {}".format(wan_dir))
         qf.append("wannier90.x {}".format(prefix))
     else:

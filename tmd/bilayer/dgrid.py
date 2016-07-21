@@ -196,6 +196,8 @@ def submit_dgrid_wan_setup(base_path, config, prefix_groups):
 def _main():
     parser = argparse.ArgumentParser("Build and run calculation on grid of d's",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--run", action="store_true",
+            help="Run calculation after making inputs")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base to run calculation")
     parser.add_argument("--symA", type=str, default="MoS2",
@@ -255,10 +257,12 @@ def _main():
             "hours": 4, "minutes": 0, "wannier": True, "project": "A-ph9",
             "global_prefix": global_prefix, "max_jobs": 24,
             "outer_min": -10.0, "outer_max": 7.0,
-            "inner_min": -8.0, "inner_max": 3.0}
+            "inner_min": -8.0, "inner_max": 3.0,
+            "subdir": args.subdir}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
-    submit_dgrid_wan_setup(base_path, config, prefix_groups)
+    if args.run:
+        submit_dgrid_wan_setup(base_path, config, prefix_groups)
     
 if __name__ == "__main__":
     _main()

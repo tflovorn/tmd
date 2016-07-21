@@ -6,6 +6,8 @@ from tmd.wannier.build import Update_Disentanglement
 
 def _main():
     parser = ArgumentParser(description="Update disentanglement window in W90 input")
+    parser.add_argument('--subdir', type=str, default=None,
+            help="Subdirectory under work_base for all job dirs")
     parser.add_argument('prefix', type=str,
             help="Prefix of system to update")
     parser.add_argument('outer_min', type=float,
@@ -20,6 +22,8 @@ def _main():
     
     gconf = global_config()
     base_path = os.path.expandvars(gconf["work_base"])
+    if args.subdir is not None:
+        base_path = os.path.join(base_path, args.subdir)
 
     wandir = os.path.join(base_path, args.prefix, "wannier")
     scf_path = os.path.join(wandir, "scf.out")
