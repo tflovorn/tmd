@@ -1,4 +1,5 @@
 import os
+import argparse
 import itertools
 import numpy as np
 import matplotlib.pyplot as plt
@@ -211,7 +212,7 @@ def plot_Hk_moire(Hk_moires):
     plt.savefig("moire.png", bbox_inches='tight', dpi=500)
 
 def _main():
-    parser = ArgumentParser("Moire band structure")
+    parser = argparse.ArgumentParser("Moire band structure")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base where calculation was run")
     parser.add_argument("--global_prefix", type=str, default="MoS2_WS2",

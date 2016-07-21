@@ -1,4 +1,5 @@
 import os
+import argparse
 from tmd.wannier.bands import Hk_recip
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.plot_ds import ds_from_prefixes, sorted_d_group, wrap_cell, get_atom_order, orbital_index
@@ -42,7 +43,7 @@ def get_H_orbital_vals(H, work, prefix):
     return vals
 
 def _main():
-    parser = ArgumentParser("Analysis of H(k) symmetry")
+    parser = argparse.ArgumentParser("Analysis of H(k) symmetry")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base where calculation was run")
     parser.add_argument("--global_prefix", type=str, default="MoS2_WS2",

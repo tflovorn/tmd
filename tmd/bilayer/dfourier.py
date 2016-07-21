@@ -1,4 +1,5 @@
 import os
+import argparse
 import itertools
 from multiprocessing import Pool
 import numpy as np
@@ -133,7 +134,7 @@ def verify_Hr_orders_identical(work, prefixes):
                 raise ValueError("atom orders vary between ds")
 
 def _main():
-    parser = ArgumentParser("Fourier components")
+    parser = argparse.ArgumentParser("Fourier components")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base where calculation was run")
     parser.add_argument("--global_prefix", type=str, default="MoS2_WS2",

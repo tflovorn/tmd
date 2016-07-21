@@ -249,10 +249,10 @@ def _main():
     else:
         raise ValueError("symA and symB are None")
 
-    num_nodes = 4
+    num_nodes = 1
     num_cores = 24*num_nodes
     config = {"machine": "ls5", "cores": num_cores, "nodes": num_nodes, "queue": "normal",
-            "hours": 1, "minutes": 0, "wannier": True, "project": "A-ph9",
+            "hours": 4, "minutes": 0, "wannier": True, "project": "A-ph9",
             "global_prefix": global_prefix, "max_jobs": 24,
             "outer_min": -10.0, "outer_max": 7.0,
             "inner_min": -8.0, "inner_max": 3.0}
