@@ -1,5 +1,6 @@
 import argparse
 import os
+from multiprocessing import Pool
 import numpy as np
 import yaml
 from tmd.pwscf.parseScf import fermi_from_scf
@@ -53,7 +54,7 @@ def bracket_indices(w, E_F):
         if val <= E_F and w[i+1] > E_F:
             return i, i+1
 
-def get_gaps(work, prefix):
+def get_gaps(work, prefix, layer_threshold):
     wannier_dir = os.path.join(work, prefix, "wannier")
     scf_path = os.path.join(wannier_dir, "scf.out")
 
@@ -76,7 +77,6 @@ def get_gaps(work, prefix):
     below_fermi, above_fermi = bracket_indices(w, E_F)
     #print(w[below_fermi], w[above_fermi])
 
-    threshold = 0.9 # may want to reduce (~0.7?)
     conduction = [None, None]
     valence = [None, None]
 
@@ -84,7 +84,7 @@ def get_gaps(work, prefix):
     while n >= 0:
         for l in [0, 1]:
             contrib = layer_contribs[l][n]
-            if contrib > threshold and valence[l] is None:
+            if contrib > layer_threshold and valence[l] is None:
                 valence[l] = n
         n -= 1
 
@@ -92,7 +92,7 @@ def get_gaps(work, prefix):
     while n < len(w):
         for l in [0, 1]:
             contrib = layer_contribs[l][n]
-            if contrib > threshold and conduction[l] is None:
+            if contrib > layer_threshold and conduction[l] is None:
                 conduction[l] = n
         n += 1
 
@@ -107,6 +107,8 @@ def get_gaps(work, prefix):
 
 def _main():
     parser = argparse.ArgumentParser("Calculation of gaps")
+    parser.add_argument("--threshold", type=float, default=0.9,
+            help="Threshold for deciding if a state is dominated by one layer")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base where calculation was run")
     parser.add_argument('global_prefix', type=str,
@@ -123,18 +125,32 @@ def _main():
     ds, prefixes = wrap_cell(ds, prefixes)
     dps = sorted_d_group(ds, prefixes)
 
-    layer0_gap_vals = []
-    gap_data = []
+    layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
+    get_gaps_args = []
     for d, prefix in dps:
-        gaps = get_gaps(work, prefix)
-        gap_data.append([list(d), gaps])
-        layer0_gap_vals.append(gaps["0/0"])
+        get_gaps_args.append([work, prefix, args.threshold])
 
-    plot_d_vals("layer0_gaps", "MoS2 gap", dps, layer0_gap_vals)
-    
+    with Pool() as p:
+        all_gaps = p.starmap(get_gaps, get_gaps_args)
+
+    gap_data = []
+    for (d, prefix), gaps in zip(dps, all_gaps):
+        gap_data.append([list(d), gaps])
+
     fp = open("gap_data", 'w')
     fp.write(yaml.dump(gap_data))
     fp.close()
+
+    for d, gaps in gap_data:
+        layer0_gap_vals.append(gaps["0/0"])
+        layer1_gap_vals.append(gaps["1/1"])
+        interlayer_01_gap_vals.append(gaps["0/1"])
+        interlayer_10_gap_vals.append(gaps["1/0"])
+
+    plot_d_vals("layer0_gaps", "MoS2 gap", dps, layer0_gap_vals)
+    plot_d_vals("layer1_gaps", "WS2 gap", dps, layer1_gap_vals)
+    plot_d_vals("interlayer_01_gaps", "MoS2->WS2 gap", dps, interlayer_01_gap_vals)
+    plot_d_vals("interlayer_10_gaps", "WS2->MoS2 gap", dps, interlayer_10_gap_vals)
 
 if __name__ == "__main__":
     _main()
