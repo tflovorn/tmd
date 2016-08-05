@@ -41,16 +41,17 @@ def _enqueue_ls5(config):
         subprocess.call(["sbatch", qf_path])
         os.chdir(cwd)
     elif config["calc"] == "wan_setup_group":
-        os.chdir(config["base_path"])
-        qf = "{}_wan_setup_{}".format(config["global_prefix"], config["prefix"])
-        qf_path = os.path.join(config["base_path"], qf)
-        subprocess.call(["sbatch", qf_path])
-        os.chdir(cwd)
+        _run_sbatch_group(config, cwd, "wan_setup")
     elif config["calc"] == "pw_post_group":
-        os.chdir(config["base_path"])
-        qf = "{}_pw_post_{}".format(config["global_prefix"], config["prefix"])
-        qf_path = os.path.join(config["base_path"], qf)
-        subprocess.call(["sbatch", qf_path])
-        os.chdir(cwd)
+        _run_sbatch_group(config, cwd, "pw_post")
+    elif config["calc"] == "bands_only_group":
+        _run_sbatch_group(config, cwd, "bands_only")
     else:
         raise ValueError("unsupported config['calc'] for enqueue")
+
+def _run_sbatch_group(config, cwd, calc_name):
+    os.chdir(config["base_path"])
+    qf = "{}_{}_{}".format(config["global_prefix"], calc_name, config["prefix"])
+    qf_path = os.path.join(config["base_path"], qf)
+    subprocess.call(["sbatch", qf_path])
+    os.chdir(cwd)

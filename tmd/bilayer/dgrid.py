@@ -202,12 +202,12 @@ def _write_queuefile_calc(config, calc):
     calc_config["calc"] = calc
     write_queuefile(calc_config)
 
-def submit_dgrid_wan_setup(base_path, config, prefix_groups):
+def submit_dgrid_pw(base_path, config, prefix_groups, calc_name):
     config["base_path"] = base_path
 
     for i in range(len(prefix_groups)):
         dv_config = deepcopy(config)
-        dv_config["calc"] = "wan_setup_group"
+        dv_config["calc"] = "{}_group".format(calc_name)
         dv_config["prefix"] = str(i)
         enqueue(dv_config)
 
@@ -287,7 +287,13 @@ def _main():
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
     if args.run:
-        submit_dgrid_wan_setup(base_path, config, prefix_groups)
+        if not args.iprelax and not args.bands_only:
+            calc_name = "wan_setup"
+        else:
+            calc_name = "bands_only"
+
+        submit_dgrid_pw(base_path, config, prefix_groups, calc_name)
+
     
 if __name__ == "__main__":
     _main()
