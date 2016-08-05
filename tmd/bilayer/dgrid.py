@@ -11,7 +11,7 @@ from tmd.wannier.build import Winfile
 from tmd.queue.queuefile import write_queuefile, write_launcherfiles, write_job_group_files
 from tmd.queue.internal import enqueue
 
-def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, c_sep=None, soc=True, xc="lda", ordering="2H"):
+def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=None, c_sep=None, soc=True, xc="lda", ordering="2H", iprelax=False, pp='nc', bands_only=False):
     if sym_B is None:
         d_as = [0.0]
         d_bs = [0.0]
@@ -25,18 +25,42 @@ def dgrid_inputs(db_path, sym_A, sym_B=None, c_bulk=None, num_d_a=None, num_d_b=
     for d_a in d_as:
         for d_b in d_bs:
             material, atoms_A, atoms_B = get_material(db_path, sym_A, sym_B, c_bulk,
-                    d_a, d_b, c_sep, soc, xc, atoms_A, atoms_B, ordering)
+                    d_a, d_b, c_sep, soc, xc, atoms_A, atoms_B, ordering, pp)
 
-            inputs[(d_a, d_b)] = {"material": material}
-            for calc_type in ["scf", "nscf", "bands"]:
-                qe_input = build_qe(material, calc_type)
-                inputs[(d_a, d_b)][calc_type] = qe_input
+            if iprelax or bands_only:
+                if iprelax:
+                    lat_facs = np.linspace(0.8, 1.2, 21)
+                else:
+                    lat_facs = [1.0]
 
-            inputs[(d_a, d_b)]["bands_post"] = build_bands(material)
-            inputs[(d_a, d_b)]["pw2wan"] = build_pw2wan(material)
-            wan_up, wan_down = Winfile(material)
-            # TODO handle collinear spin-polarized case
-            inputs[(d_a, d_b)]["wannier"] = wan_up
+                for lat_fac in lat_facs:
+                    this_material = deepcopy(material)
+                    this_material["latconst"] *= lat_fac
+                    if iprelax:
+                        if sym_B is None:
+                            this_material["prefix"] = "{}_lat_{:.3f}_da_{:.3f}_db_{:.3f}".format(sym_A,
+                                    lat_fac, d_a, d_b)
+                        else:
+                            this_material["prefix"] = "{}_{}_lat_{:.3f}_da_{:.3f}_db_{:.3f}".format(sym_A,
+                                    sym_B, lat_fac, d_a, d_b)
+
+                    inputs[(d_a, d_b, lat_fac)] = {"material": this_material}
+                    for calc_type in ["scf", "bands"]:
+                        qe_input = build_qe(this_material, calc_type)
+                        inputs[(d_a, d_b, lat_fac)][calc_type] = qe_input
+
+                    inputs[(d_a, d_b, lat_fac)]["bands_post"] = build_bands(this_material)
+            else:
+                inputs[(d_a, d_b)] = {"material": material}
+                for calc_type in ["scf", "nscf", "bands"]:
+                    qe_input = build_qe(material, calc_type)
+                    inputs[(d_a, d_b)][calc_type] = qe_input
+
+                inputs[(d_a, d_b)]["bands_post"] = build_bands(material)
+                inputs[(d_a, d_b)]["pw2wan"] = build_pw2wan(material)
+                wan_up, wan_down = Winfile(material)
+                # TODO handle collinear spin-polarized case
+                inputs[(d_a, d_b)]["wannier"] = wan_up
 
     return inputs
 
@@ -67,31 +91,20 @@ def _write_dv(base_path, dv):
     if not os.path.exists(bands_dir_path):
         os.mkdir(bands_dir_path)
 
-    scf_path = os.path.join(wannier_dir_path, "{}.scf.in".format(prefix))
-    nscf_path = os.path.join(wannier_dir_path, "{}.nscf.in".format(prefix))
-    bands_path = os.path.join(bands_dir_path, "{}.bands.in".format(prefix))
-    bands_post_path = os.path.join(bands_dir_path, "{}.bands_post.in".format(prefix))
-    pw2wan_path = os.path.join(wannier_dir_path, "{}.pw2wan.in".format(prefix))
+    calcs = ["scf", "nscf", "bands", "bands_post", "pw2wan"]
+    for calc in calcs:
+        if calc not in dv:
+            continue
 
-    with open(scf_path, 'w') as fp:
-        fp.write(dv["scf"])
+        in_path = os.path.join(wannier_dir_path, "{}.{}.in".format(prefix, calc))
+        with open(in_path, 'w') as fp:
+            fp.write(dv[calc])
 
-    with open(nscf_path, 'w') as fp:
-        fp.write(dv["nscf"])
+    if "wannier" in dv:
+        wannier_path = os.path.join(wannier_dir_path, "{}.win".format(prefix))
 
-    with open(bands_path, 'w') as fp:
-        fp.write(dv["bands"])
-
-    with open(bands_post_path, 'w') as fp:
-        fp.write(dv["bands_post"])
-
-    with open(pw2wan_path, 'w') as fp:
-        fp.write(dv["pw2wan"])
-
-    wannier_path = os.path.join(wannier_dir_path, "{}.win".format(prefix))
-
-    with open(wannier_path, 'w') as fp:
-        fp.write(dv["wannier"])
+        with open(wannier_path, 'w') as fp:
+            fp.write(dv["wannier"])
 
 def write_dgrid_queuefiles(base_path, dgrid, config):
     prefix_list = []
@@ -101,8 +114,14 @@ def write_dgrid_queuefiles(base_path, dgrid, config):
 
     prefix_groups = group_jobs(config, prefix_list)
     write_prefix_groups(base_path, config["global_prefix"], prefix_groups)
-
     config["base_path"] = base_path
+
+    if config["iprelax"] is True or config["bands_only"] is True:
+        bands_only_group_config = deepcopy(config)
+        bands_only_group_config["calc"] = "bands_only"
+        write_job_group_files(bands_only_group_config, prefix_groups)
+        return prefix_groups
+
     wan_setup_group_config = deepcopy(config)
     wan_setup_group_config["calc"] = "wan_setup"
     write_job_group_files(wan_setup_group_config, prefix_groups)
@@ -172,17 +191,16 @@ def _write_dv_queuefile(base_path, dv, config):
     prefix = dv["material"]["prefix"]
     config["prefix"] = prefix
 
-    wan_setup_config = deepcopy(config)
-    wan_setup_config["calc"] = "wan_setup"
-    write_queuefile(wan_setup_config)
+    if config["iprelax"] is True or config["bands_only"] is True:
+        _write_queuefile_calc(config, "bands_only")
+    else:
+        for calc in ["wan_setup", "pw_post", "wan_run"]:
+            _write_queuefile_calc(config, calc)
 
-    pw_post_config = deepcopy(config)
-    pw_post_config["calc"] = "pw_post"
-    write_queuefile(pw_post_config)
-
-    wan_run_config = deepcopy(config)
-    wan_run_config["calc"] = "wan_run"
-    write_queuefile(wan_run_config)
+def _write_queuefile_calc(config, calc):
+    calc_config = deepcopy(config)
+    calc_config["calc"] = calc
+    write_queuefile(calc_config)
 
 def submit_dgrid_wan_setup(base_path, config, prefix_groups):
     config["base_path"] = base_path
@@ -218,6 +236,12 @@ def _main():
             help="Number of d's (shifts) along the a-axis")
     parser.add_argument("--num_d_b", type=int, default=3,
             help="Number of d's (shifts) along the b-axis")
+    parser.add_argument("--pp", type=str, default="nc",
+            help="Pseudopotential type ('nc' or 'paw')")
+    parser.add_argument("--iprelax", action="store_true",
+            help="Vary in-plane lattice constant to search for lowest energy")
+    parser.add_argument("--bands_only", action="store_true",
+            help="Run only scf and bands calc")
     args = parser.parse_args()
 
     symA, symB = args.symA, args.symB
@@ -232,7 +256,8 @@ def _main():
     c_bulk = c_bulk_values[symA]
 
     dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, args.num_d_a, args.num_d_b,
-            c_sep=args.c_sep, soc=args.soc, xc=args.xc, ordering=args.ordering)
+            c_sep=args.c_sep, soc=args.soc, xc=args.xc, ordering=args.ordering, iprelax=args.iprelax,
+            pp=args.pp, bands_only=args.bands_only)
 
     base_path = os.path.expandvars(gconf["work_base"])
     if args.subdir is not None:
@@ -258,7 +283,7 @@ def _main():
             "global_prefix": global_prefix, "max_jobs": 24,
             "outer_min": -10.0, "outer_max": 7.0,
             "inner_min": -8.0, "inner_max": 3.0,
-            "subdir": args.subdir}
+            "subdir": args.subdir, "iprelax": args.iprelax, "bands_only": args.bands_only}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
     if args.run:

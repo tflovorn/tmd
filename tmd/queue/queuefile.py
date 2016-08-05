@@ -131,6 +131,16 @@ def _write_queuefile_ls5(config):
         qf.append(py_str)
         qf.append("cd {}".format(wan_dir))
         qf.append("wannier90.x {}".format(prefix))
+    elif config["calc"] == "bands_only":
+        nk = str(config["nodes"])
+        qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.scf.in > scf.out".format(nk, prefix))
+        qf.append("cd ..")
+        qf.append("cp -r wannier/* bands")
+        qf.append("cd bands")
+        qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.bands.in > bands.out".format(nk, prefix))
+        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("rm {}.wfc*".format(prefix))
+        qf.append("rm -r {}.save".format(prefix))
     else:
         raise ValueError("unrecognized config['calc'] ('wan_setup' and 'wan_run' supported)")
 
