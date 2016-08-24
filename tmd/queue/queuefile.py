@@ -110,7 +110,7 @@ def _write_queuefile_ls5(config):
             qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.nscf.in > nscf.out".format(nk, prefix))
     elif config["calc"] == "pw_post":
         qf.append("cd ../bands")
-        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("ibrun tacc_affinity {} -input {}.bands_post.in > bands_post.out".format(config["qe_bands"], prefix))
         qf.append("rm {}.wfc*".format(prefix))
         qf.append("rm -r {}.save".format(prefix))
         qf.append("cd ../wannier")
@@ -138,7 +138,7 @@ def _write_queuefile_ls5(config):
         qf.append("cp -r wannier/* bands")
         qf.append("cd bands")
         qf.append("ibrun tacc_affinity pw.x -nk {} -input {}.bands.in > bands.out".format(nk, prefix))
-        qf.append("ibrun tacc_affinity bands.x -input {}.bands_post.in > bands_post.out".format(prefix))
+        qf.append("ibrun tacc_affinity {} -input {}.bands_post.in > bands_post.out".format(config["qe_bands"], prefix))
         qf.append("rm {}.wfc*".format(prefix))
         qf.append("rm -r {}.save".format(prefix))
     else:

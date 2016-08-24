@@ -28,12 +28,19 @@ def _main():
     if args.subdir is not None:
         base_path = os.path.join(base_path, args.subdir)
 
+    if "qe_bands" in gconf:
+        qe_bands_dir = os.path.expandvars(gconf["qe_bands"])
+        qe_bands_path = os.path.join(qe_bands_dir, "bands.x")
+    else:
+        qe_bands_path = "bands.x"
+
     calc = "pw_post"
     prefix_groups = get_prefix_groups(base_path, args.global_prefix)
 
     config = {"machine": "ls5", "cores": 24, "nodes": 1, "queue": "normal",
             "hours": 8, "minutes": 0, "wannier": True, "project": "A-ph9",
-            "global_prefix": args.global_prefix, "max_jobs": 24}
+            "global_prefix": args.global_prefix, "max_jobs": 24,
+            "qe_bands": qe_bands_path}
 
     submit_dgrid_pw_post(base_path, config, prefix_groups)
 

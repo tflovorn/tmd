@@ -263,6 +263,25 @@ def _main():
     if args.subdir is not None:
         base_path = os.path.join(base_path, args.subdir)
 
+    # Recompiled QE to increase precision in bands.dat output file.
+    # (The hard-coded default is 3 decimal places (1 meV) which is too small
+    # for gap variation on the scale of 10 meV).
+    #
+    # Starting with QE 5.4.0,
+    # in PP/src/bands.f90 changed:
+    # Line 470: 10f8.3 --> 10f13.8
+    # Line 476: 10f8.3 --> 10f13.8
+    #
+    # To compile QE on LS5, need to specify mpich scalapack.
+    # With module 'espresso/5.4.0' loaded, compile with:
+    # ./configure SCALAPACK_LIBS="-lmkl_scalapack_lp64 -lmkl_blacs_intelmpi_lp64"
+    # make pp
+    if "qe_bands" in gconf:
+        qe_bands_dir = os.path.expandvars(gconf["qe_bands"])
+        qe_bands_path = os.path.join(qe_bands_dir, "bands.x")
+    else:
+        qe_bands_path = "bands.x"
+
     write_dgrid(base_path, dgrid)
 
     #config = {"machine": "__local__", "wannier": True}
@@ -283,7 +302,8 @@ def _main():
             "global_prefix": global_prefix, "max_jobs": 24,
             "outer_min": -10.0, "outer_max": 7.0,
             "inner_min": -8.0, "inner_max": 3.0,
-            "subdir": args.subdir, "iprelax": args.iprelax, "bands_only": args.bands_only}
+            "subdir": args.subdir, "iprelax": args.iprelax, "bands_only": args.bands_only,
+            "qe_bands": qe_bands_path}
     prefix_groups = write_dgrid_queuefiles(base_path, dgrid, config)
 
     if args.run:
