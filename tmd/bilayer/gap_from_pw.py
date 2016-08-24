@@ -7,14 +7,7 @@ from tmd.pwscf.extractQEBands import extractQEBands
 from tmd.bilayer.dgrid import get_prefixes
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.plot_ds import ds_from_prefixes, wrap_cell, sorted_d_group, plot_d_vals
-from tmd.bilayer.gap import bracket_indices
-
-def _close(k, q, eps):
-    for i in range(len(k)):
-        if abs(k[i] - q[i]) > eps:
-            return False
-
-    return True
+from tmd.bilayer.gap import bracket_indices, _close
 
 def get_gap(work, prefix, k_cart):
     wannier_dir = os.path.join(work, prefix, "wannier")
