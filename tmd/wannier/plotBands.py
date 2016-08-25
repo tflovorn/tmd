@@ -12,7 +12,7 @@ from tmd.pwscf.parseScf import alat_from_scf, latVecs_from_scf
 # Avoids problem of overlapping markers.
 eval_dot_size = True
 
-def plotBands(evalsDFT, Hr, alat, latVecs, minE, maxE, outpath, show=False, symList=None, fermi_energy=None, plot_evecs=False, plot_DFT_evals=True):
+def plotBands(evalsDFT, Hr, alat, latVecs, minE, maxE, outpath, show=False, symList=None, fermi_energy=None, plot_evecs=False, plot_DFT_evals=True, component_labels=None):
     '''Create a plot of the eigenvalues given by evalsDFT (which has the form
     returned by extractQEBands()). Additionally, plot the eigenvalues of the
     system described by the Wannier Hamiltonian Hr (which has the form
@@ -107,13 +107,19 @@ def plotBands(evalsDFT, Hr, alat, latVecs, minE, maxE, outpath, show=False, symL
                 scale = 10.0
                 for val in plt_cs:
                     s_weights.append(scale*val)
-                plt.scatter(plt_xs, plt_ys, c=plt_cs, cmap='gnuplot', s=s_weights, facecolors="none")
+                plt.scatter(plt_xs, plt_ys, c=plt_cs, cmap='gnuplot', s=s_weights, facecolors="none", edgecolors="none")
             plt.colorbar()
 
             _set_fermi_energy_line(fermi_energy)
             _set_sympoints_ticks(symList, DFT_ks, Hr, Hr_ks_per_DFT_k)
             _set_plot_boundaries(DFT_xs, minE, maxE)
-            _save_plot(show, outpath + "_{}".format(str(comp)))
+
+            if component_labels is None:
+                postfix = str(comp)
+            else:
+                postfix = "{}_{}".format(str(comp), component_labels[comp])
+
+            _save_plot(show, outpath + "_{}".format(postfix))
 
 def _set_fermi_energy_line(fermi_energy):
     # Line to show Fermi energy.
