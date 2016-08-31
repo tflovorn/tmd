@@ -60,7 +60,7 @@ def make_plot(work, prefix, plot_evecs, minE, maxE):
     symList = ["$\\Gamma$", "$M$", "$K$", "$\\Gamma$"]
     component_labels = get_orbital_labels(work, prefix)
     plotBands(evalsQE, Hr, alat, latVecs, minE, maxE, outpath, symList=symList,
-            plot_evecs=plot_evecs, component_labels=component_labels)
+            fermi_energy=E_F, plot_evecs=plot_evecs, component_labels=component_labels)
 
 def _main():
     parser = argparse.ArgumentParser(description="Plot TMD band structure result",
