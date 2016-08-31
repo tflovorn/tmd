@@ -20,7 +20,7 @@ def _close(k, q, eps):
 
     return True
 
-def get_layer_indices(work, prefix):
+def get_layer_indices(work, prefix, fixed_spin):
     atom_order = get_atom_order(work, prefix)
 
     syms = [["X1", "M", "X2"], ["X1p", "Mp", "X2p"]]
@@ -38,6 +38,9 @@ def get_layer_indices(work, prefix):
         for sym in layer_syms:
             for orb in orbitals[sym]:
                 for spin in spins:
+                    if spin != fixed_spin:
+                        continue
+
                     index = orbital_index(atom_order, sym, orb, spin, soc=True)
                     layer_indices[-1].append(index)
 
@@ -64,7 +67,22 @@ def bracket_indices(w, E_F):
         if val <= E_F and w[i+1] > E_F:
             return i, i+1
 
-def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
+def select_layer_contrib(layer_contribs_up, layer_contribs_down, spin, l, n):
+    contrib_up = layer_contribs_up[l][n]
+    contrib_down = layer_contribs_down[l][n]
+
+    if spin is None:
+        contrib = contrib_up + contrib_down
+    elif spin == 'up':
+        contrib = contrib_up
+    elif spin == 'down':
+        contrib = contrib_down
+    else:
+        raise ValueError("unrecognized spin value")
+
+    return contrib
+
+def get_gaps(work, prefix, layer_threshold, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8):
     K = (1/3, 1/3, 0.0)
 
     wannier_dir = os.path.join(work, prefix, "wannier")
@@ -93,7 +111,8 @@ def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
         win_path = os.path.join(wannier_dir, "{}.win".format(prefix))
         inner_win = parse_inner_window(win_path)
 
-    layer_indices = get_layer_indices(work, prefix)
+    layer_indices_up = get_layer_indices(work, prefix, 'up')
+    layer_indices_down = get_layer_indices(work, prefix, 'down')
 
     Hr = get_Hr(work, prefix)
     # rotated 2pi/3: K_R2 = (-2/3, 1/3, 0.0)
@@ -110,7 +129,8 @@ def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
                 w, inner_win)
         offset = dft_start_index - wan_start_index
 
-    layer_contribs = get_layer_contribs(layer_indices, U)
+    layer_contribs_up = get_layer_contribs(layer_indices_up, U)
+    layer_contribs_down = get_layer_contribs(layer_indices_down, U)
 
     below_fermi, above_fermi = bracket_indices(w, E_F)
 
@@ -120,7 +140,8 @@ def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
     n = below_fermi
     while n >= 0:
         for l in [0, 1]:
-            contrib = layer_contribs[l][n]
+            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_valence, l, n)
+
             if contrib > layer_threshold and valence[l] is None:
                 valence[l] = n
         n -= 1
@@ -128,7 +149,8 @@ def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
     n = above_fermi
     while n < len(w):
         for l in [0, 1]:
-            contrib = layer_contribs[l][n]
+            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_conduction, l, n)
+
             if contrib > layer_threshold and conduction[l] is None:
                 conduction[l] = n
         n += 1
@@ -151,14 +173,18 @@ def get_gaps(work, prefix, layer_threshold, use_QE_evs=True, ev_width=8):
 def _main():
     parser = argparse.ArgumentParser("Calculation of gaps",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--use_QE_evs", action='store_true',
-            help="Use eigenvalues from QE instead of Wannier H(k)")
-    parser.add_argument("--ev_width", type=int, default=8,
-            help="Number of characters per eigenvalue in QE bands.dat")
-    parser.add_argument("--threshold", type=float, default=0.9,
-            help="Threshold for deciding if a state is dominated by one layer")
     parser.add_argument("--subdir", type=str, default=None,
             help="Subdirectory under work_base where calculation was run")
+    parser.add_argument("--threshold", type=float, default=0.9,
+            help="Threshold for deciding if a state is dominated by one layer")
+    parser.add_argument("--spin_valence", type=str, default=None,
+            help="Set 'up' or 'down' to choose valence band spin type; closest to E_F is used if not set")
+    parser.add_argument("--spin_conduction", type=str, default=None,
+            help="Set 'up' or 'down' to choose conduction band spin type; closest to E_F is used if not set")
+    parser.add_argument("--use_QE_evs", action='store_true',
+            help="Use eigenvalues from QE instead of Wannier H(k); if set, spin_valence and spin_conduction act as if not specified.")
+    parser.add_argument("--ev_width", type=int, default=8,
+            help="Number of characters per eigenvalue in QE bands.dat")
     parser.add_argument('global_prefix', type=str,
             help="Calculation name")
     args = parser.parse_args()
@@ -176,7 +202,7 @@ def _main():
     layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
     get_gaps_args = []
     for d, prefix in dps:
-        get_gaps_args.append([work, prefix, args.threshold, args.use_QE_evs, args.ev_width])
+        get_gaps_args.append([work, prefix, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width])
 
     with Pool() as p:
         all_gaps = p.starmap(get_gaps, get_gaps_args)
