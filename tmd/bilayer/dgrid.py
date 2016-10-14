@@ -252,8 +252,11 @@ def _main():
     db_path = os.path.join(tmd_base, "c2dm.db")
     gconf = global_config()
 
-    c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
-    c_bulk = c_bulk_values[symA]
+    if not args.monolayer:
+        c_bulk_values = {"MoS2": 12.296, "MoSe2": 12.939}
+        c_bulk = c_bulk_values[symA]
+    else:
+        c_bulk = None
 
     dgrid = dgrid_inputs(db_path, symA, symB, c_bulk, args.num_d_a, args.num_d_b,
             c_sep=args.c_sep, soc=args.soc, xc=args.xc, ordering=args.ordering, iprelax=args.iprelax,
