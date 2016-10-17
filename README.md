@@ -2,7 +2,7 @@
 
 Running the calculation:
 
-`python3 tmd/bilayer/dgrid.py`: prepare inputs for grid of d's and submit DFT calculation for all d's (scf, nscf bands, nscf).
+`python3 tmd/bilayer/dgrid.py`: prepare inputs for grid of d's (interlayer shifts) and submit DFT calculation for all d's (scf, nscf bands, nscf).
 
 `python3 tmd/bilayer/submit_pw_post.py`: submit post-processing calculation for all d's (make bands data file, run pw2wannier90).
 
@@ -10,15 +10,13 @@ Running the calculation:
 
 Analysis of results:
 
-`python3 tmd/bilayer/plot_ds.py`: plot properties (energy, gap, matrix elements) as function of d
+`python3 tmd/bilayer/gaps.py`: used to obtain the gap as a function of d for states localized in a given layer. This is the only analysis tool in this repository used for the results in "Topological Exciton Bands in Moiré Heterojunctions".
+
+`python3 tmd/bilayer/plot_ds.py`: plot properties (energy, overall gap, matrix elements) as function of d
 
 `python3 tmd/bilayer/plotBands.py`: plot bands as function of d
 
-`python3 tmd/bilayer/dfourier.py`: plot matrix elements as function of G
-
-`python3 tmd/bilayer/moire.py`: plot moire bands
-
-TODO -- make workflow more friendly/repeatable/less error-prone by removing hard-coded parameters and use a job config file instead.
+`python3 tmd/bilayer/dfourier.py`: plot matrix elements as function of G (the Fourier transform of d)
 
 # Dependencies and installation: LS5
 
@@ -97,5 +95,3 @@ For making plots, need cwannier:
     make
     cd ..
     make
-
-
