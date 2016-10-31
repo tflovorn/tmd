@@ -3,3 +3,4 @@ tmd.egg-info
 *.swp
 __pycache__
 *.png
+*_gap_data

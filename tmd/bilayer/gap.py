@@ -82,9 +82,7 @@ def select_layer_contrib(layer_contribs_up, layer_contribs_down, spin, l, n):
 
     return contrib
 
-def get_gaps(work, prefix, layer_threshold, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8):
-    K = (1/3, 1/3, 0.0)
-
+def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8):
     wannier_dir = os.path.join(work, prefix, "wannier")
     scf_path = os.path.join(wannier_dir, "scf.out")
     E_F = fermi_from_scf(scf_path)
@@ -93,20 +91,20 @@ def get_gaps(work, prefix, layer_threshold, spin_valence=None, spin_conduction=N
         R = 2*np.pi*np.linalg.inv(D)
         # ks in QE bands output are in units of 2pi/a;
         # D is in units of a
-        K_cart_2pi = np.dot(np.array(K), R) / (2*np.pi)
+        k_cart_2pi = np.dot(np.array(k), R) / (2*np.pi)
 
         bands_dir = os.path.join(work, prefix, "bands")
         evals_path = os.path.join(bands_dir, "{}_bands.dat".format(prefix))
         nbnd, nks, QE_bands = extractQEBands(evals_path, ev_width=ev_width)
         eps = 1e-6
-        QE_bands_K = None
+        QE_bands_k = None
         for qe_k_cart, qe_k_evals in QE_bands:
-            if _close(K_cart_2pi, qe_k_cart, eps):
-                QE_bands_K = qe_k_evals
+            if _close(k_cart_2pi, qe_k_cart, eps):
+                QE_bands_k = qe_k_evals
                 break
 
-        if QE_bands_K is None:
-            raise ValueError("could not find QE k = K")
+        if QE_bands_k is None:
+            raise ValueError("could not find QE k")
 
         win_path = os.path.join(wannier_dir, "{}.win".format(prefix))
         inner_win = parse_inner_window(win_path)
@@ -115,17 +113,18 @@ def get_gaps(work, prefix, layer_threshold, spin_valence=None, spin_conduction=N
     layer_indices_down = get_layer_indices(work, prefix, 'down')
 
     Hr = get_Hr(work, prefix)
-    # rotated 2pi/3: K_R2 = (-2/3, 1/3, 0.0)
-    # rotated 4pi/3: K_R4 = (1/3, -2/3, 0.0)
-    HK = Hk_recip(K, Hr)
+    # note:
+    # rotated K 2pi/3: K_R2 = (-2/3, 1/3, 0.0)
+    # rotated K 4pi/3: K_R4 = (1/3, -2/3, 0.0)
+    Hk = Hk_recip(k, Hr)
     # TODO - check ws for QE bands.
     # Wannier functions may not preserve symmetry.
     # Possible that symmetry is exact in QE bands.
 
-    w, U = np.linalg.eigh(HK)
+    w, U = np.linalg.eigh(Hk)
 
     if use_QE_evs:
-        dft_start_index, wan_start_index, num_states = dft_wan_correspondence(QE_bands_K,
+        dft_start_index, wan_start_index, num_states = dft_wan_correspondence(QE_bands_k,
                 w, inner_win)
         offset = dft_start_index - wan_start_index
 
@@ -157,18 +156,62 @@ def get_gaps(work, prefix, layer_threshold, spin_valence=None, spin_conduction=N
 
     gaps = {}
     if use_QE_evs:
-        ev = QE_bands_K
+        ev = QE_bands_k
         gaps["0/0"] = float(ev[conduction[0]+offset] - ev[valence[0]+offset])
         gaps["1/1"] = float(ev[conduction[1]+offset] - ev[valence[1]+offset])
         gaps["0/1"] = float(ev[conduction[0]+offset] - ev[valence[1]+offset])
         gaps["1/0"] = float(ev[conduction[1]+offset] - ev[valence[0]+offset])
+        gaps["0_valence"] = float(ev[valence[0]+offset])
+        gaps["1_valence"] = float(ev[valence[1]+offset])
+        gaps["0_conduction"] = float(ev[conduction[0]+offset])
+        gaps["1_conduction"] = float(ev[conduction[1]+offset])
     else:
         gaps["0/0"] = float(w[conduction[0]] - w[valence[0]])
         gaps["1/1"] = float(w[conduction[1]] - w[valence[1]])
         gaps["0/1"] = float(w[conduction[0]] - w[valence[1]])
         gaps["1/0"] = float(w[conduction[1]] - w[valence[0]])
+        gaps["0_valence"] = float(w[valence[0]])
+        gaps["1_valence"] = float(w[valence[1]])
+        gaps["0_conduction"] = float(w[conduction[0]])
+        gaps["1_conduction"] = float(w[conduction[1]])
 
     return gaps
+
+def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_evs, ev_width, k, gap_label, gap_label_tex):
+    get_gaps_args = []
+    for d, prefix in dps:
+        get_gaps_args.append([work, prefix, threshold, k, spin_valence, spin_conduction, use_QE_evs, ev_width])
+
+    with Pool() as p:
+        all_gaps = p.starmap(get_gaps, get_gaps_args)
+
+    gap_data = []
+    for (d, prefix), gaps in zip(dps, all_gaps):
+        gap_data.append([list(d), gaps])
+
+    with open("{}_gap_data".format(gap_label), 'w') as fp:
+        fp.write(yaml.dump(gap_data))
+
+    layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
+    layer0_valence, layer1_valence, layer0_conduction, layer1_conduction = [], [], [], []
+    for d, gaps in gap_data:
+        layer0_gap_vals.append(gaps["0/0"])
+        layer1_gap_vals.append(gaps["1/1"])
+        interlayer_01_gap_vals.append(gaps["0/1"])
+        interlayer_10_gap_vals.append(gaps["1/0"])
+        layer0_valence.append(gaps["0_valence"])
+        layer1_valence.append(gaps["1_valence"])
+        layer0_conduction.append(gaps["0_conduction"])
+        layer1_conduction.append(gaps["1_conduction"])
+
+    plot_d_vals("{}_layer0_gaps".format(gap_label), "{} MoS$_2$ gap [eV]".format(gap_label_tex), dps, layer0_gap_vals)
+    plot_d_vals("{}_layer1_gaps".format(gap_label), "{} WS$_2$ gap [eV]".format(gap_label_tex), dps, layer1_gap_vals)
+    plot_d_vals("{}_interlayer_01_gaps".format(gap_label), "{} MoS$_2$ $\\rightarrow$ WS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_01_gap_vals)
+    plot_d_vals("{}_interlayer_10_gaps".format(gap_label), "{} WS$_2$ $\\rightarrow$ MoS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_10_gap_vals)
+    plot_d_vals("{}_layer0_valence".format(gap_label), "{} MoS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer0_valence)
+    plot_d_vals("{}_layer1_valence".format(gap_label), "{} WS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer1_valence)
+    plot_d_vals("{}_layer0_conduction".format(gap_label), "{} MoS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer0_conduction)
+    plot_d_vals("{}_layer1_conduction".format(gap_label), "{} WS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer1_conduction)
 
 def _main():
     parser = argparse.ArgumentParser("Calculation of gaps",
@@ -199,32 +242,10 @@ def _main():
     ds, prefixes = wrap_cell(ds, prefixes)
     dps = sorted_d_group(ds, prefixes)
 
-    layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
-    get_gaps_args = []
-    for d, prefix in dps:
-        get_gaps_args.append([work, prefix, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width])
-
-    with Pool() as p:
-        all_gaps = p.starmap(get_gaps, get_gaps_args)
-
-    gap_data = []
-    for (d, prefix), gaps in zip(dps, all_gaps):
-        gap_data.append([list(d), gaps])
-
-    fp = open("gap_data", 'w')
-    fp.write(yaml.dump(gap_data))
-    fp.close()
-
-    for d, gaps in gap_data:
-        layer0_gap_vals.append(gaps["0/0"])
-        layer1_gap_vals.append(gaps["1/1"])
-        interlayer_01_gap_vals.append(gaps["0/1"])
-        interlayer_10_gap_vals.append(gaps["1/0"])
-
-    plot_d_vals("layer0_gaps", "MoS2 gap [eV]", dps, layer0_gap_vals)
-    plot_d_vals("layer1_gaps", "WS2 gap [eV]", dps, layer1_gap_vals)
-    plot_d_vals("interlayer_01_gaps", "MoS2->WS2 gap [eV]", dps, interlayer_01_gap_vals)
-    plot_d_vals("interlayer_10_gaps", "WS2->MoS2 gap [eV]", dps, interlayer_10_gap_vals)
+    K = (1/3, 1/3, 0.0)
+    Gamma = (0.0, 0.0, 0.0)
+    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, K, "K", "$K$")
+    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, Gamma, "Gamma", "$\\Gamma$")
 
 if __name__ == "__main__":
     _main()
