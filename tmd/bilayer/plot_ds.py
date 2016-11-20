@@ -193,7 +193,10 @@ def extract_Hk_vals(work, dps, soc):
             ("X2_Mp_z_z2_uu_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "up"]),
             ("X2_Mp_z_z2_ud_Mp", (-1/2, 0, 0), ["X2", "pz", "up", "Mp", "dz2", "down"])]
 
+    # has the structure {"val_label_1": [val1(d1), val1(d2), ...],
+    #       "val_label_2": [val2(d1), val2(d2), ...], ...}
     Hk_vals = {}
+
     for d, prefix in dps:
         Hr = get_Hr(work, prefix)
         atom_Hr_order = get_atom_order(work, prefix)
@@ -318,12 +321,17 @@ def _main():
     ds, prefixes = wrap_cell(ds, prefixes)
     dps = sorted_d_group(ds, prefixes)
 
+    write_out_data = {"_ds": []}
+    for d, prefix in dps:
+        write_out_data["_ds"].append(d)
+
     energies = get_energies(work, dps)
     energies_rel_meV = energies_relative_to(energies, dps, (0.0, 0.0))
 
     E_title = "$\\Delta E$ [meV]"
     E_plot_name = "{}_energies".format(args.global_prefix)
     plot_d_vals(E_plot_name, E_title, dps, energies_rel_meV)
+    write_out_data["meV_relative_total_energy"] = energies_rel_meV
 
     soc = True
     Hk_vals = extract_Hk_vals(work, dps, soc)
@@ -332,6 +340,7 @@ def _main():
         title = label
         plot_name = "{}_{}".format(args.global_prefix, label)
         plot_d_vals(plot_name, title, dps, this_vals)
+        write_out_data["eV_{}".format(label)] = this_vals
 
     na, nb = 16, 16
     num_dos = 1000
@@ -341,6 +350,10 @@ def _main():
     gap_plot_title = "Gaps [eV]"
     gap_plot_name = "{}_gaps".format(args.global_prefix)
     plot_d_vals(gap_plot_name, gap_plot_title, dps, gaps)
+    write_out_data["eV_overall_gap"] = gaps
+
+    with open("{}_plot_ds_data.json".format(args.global_prefix), 'w') as fp:
+        json.dump(write_out_data, fp)
 
 if __name__ == "__main__":
     _main()

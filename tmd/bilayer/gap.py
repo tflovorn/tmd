@@ -1,5 +1,6 @@
 import argparse
 import os
+import json
 from multiprocessing import Pool
 import numpy as np
 import yaml
@@ -186,11 +187,24 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
         all_gaps = p.starmap(get_gaps, get_gaps_args)
 
     gap_data = []
+    # For JSON output, use same format as plot_ds.
+    json_gap_data = {"_ds": []}
+
     for (d, prefix), gaps in zip(dps, all_gaps):
         gap_data.append([list(d), gaps])
 
-    with open("{}_gap_data".format(gap_label), 'w') as fp:
+        json_gap_data["_ds"].append(d)
+        for k, v in gaps.items():
+            if k not in json_gap_data:
+                json_gap_data[k] = []
+
+            json_gap_data[k].append(v)
+
+    with open("{}_gap_data.yaml".format(gap_label), 'w') as fp:
         fp.write(yaml.dump(gap_data))
+
+    with open("{}_gap_data.json".format(gap_label), 'w') as fp:
+        json.dump(json_gap_data, fp)
 
     layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
     layer0_valence, layer1_valence, layer0_conduction, layer1_conduction = [], [], [], []
