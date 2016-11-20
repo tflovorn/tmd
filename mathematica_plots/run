@@ -1,0 +1,3 @@
+#!/bin/bash
+wolframscript -script HexPlot.wl "K_AA_gap_data.json" "AA" "A"
+wolframscript -script HexPlot.wl "K_AB_gap_data.json" "AB" "B"
