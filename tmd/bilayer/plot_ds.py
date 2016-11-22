@@ -254,11 +254,14 @@ def find_gaps(work, dps, E_below_fermi, E_above_fermi, num_dos, na, nb):
 
         gap_at_fermi = None
         for gap_interval in this_gaps:
-            if E_F >= gap_interval[0] and E_F <= gap_interval[1]:
+            # Check that either E_F is inside the gap, or E_F is close to
+            # valence band maximum or conduction band minimum.
+            gap_in_band_tolerance = 1e-2 # 10 meV tolerance
+            if ((E_F >= gap_interval[0] and E_F <= gap_interval[1])
+                    or abs(gap_interval[0] - E_F) < gap_in_band_tolerance
+                    or abs(E_F - gap_interval[1]) < gap_in_band_tolerance):
                 gap_at_fermi = gap_interval
                 break
-            # for now - don't allow E_F to be outside gap
-            # may need to correct this
 
         if gap_at_fermi is not None:
             gap_val = gap_at_fermi[1] - gap_at_fermi[0]
