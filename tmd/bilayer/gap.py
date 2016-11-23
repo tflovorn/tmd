@@ -220,8 +220,8 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
 
     plot_d_vals("{}_layer0_gaps".format(gap_label), "{} MoS$_2$ gap [eV]".format(gap_label_tex), dps, layer0_gap_vals)
     plot_d_vals("{}_layer1_gaps".format(gap_label), "{} WS$_2$ gap [eV]".format(gap_label_tex), dps, layer1_gap_vals)
-    plot_d_vals("{}_interlayer_01_gaps".format(gap_label), "{} MoS$_2$ $\\rightarrow$ WS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_01_gap_vals)
-    plot_d_vals("{}_interlayer_10_gaps".format(gap_label), "{} WS$_2$ $\\rightarrow$ MoS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_10_gap_vals)
+    plot_d_vals("{}_interlayer_01_gaps".format(gap_label), "{} MoS$_2$ - WS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_01_gap_vals)
+    plot_d_vals("{}_interlayer_10_gaps".format(gap_label), "{} WS$_2$ - MoS$_2$ gap [eV]".format(gap_label_tex), dps, interlayer_10_gap_vals)
     plot_d_vals("{}_layer0_valence".format(gap_label), "{} MoS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer0_valence)
     plot_d_vals("{}_layer1_valence".format(gap_label), "{} WS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer1_valence)
     plot_d_vals("{}_layer0_conduction".format(gap_label), "{} MoS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer0_conduction)

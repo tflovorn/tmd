@@ -62,8 +62,8 @@ titles = Association[
     "1_conduction" -> layer1<>" "<>klabel<>" conduction band minimum [eV]",
     "0/0" -> layer0<>" "<>klabel<>" gap [eV]",
     "1/1" -> layer1<>" "<>klabel<>" gap [eV]",
-    "0/1" -> layer0<>" -> "<>layer1<>" "<>klabel<>" gap [eV]",
-    "1/0" -> layer1<>" -> "<>layer0<>" "<>klabel<>" gap [eV]",
+    "0/1" -> layer0<>" - "<>layer1<>" "<>klabel<>" gap [eV]",
+    "1/0" -> layer1<>" - "<>layer0<>" "<>klabel<>" gap [eV]",
     "meV_relative_total_energy" -> "Relative total energy [meV]",
     "eV_overall_gap" -> "Overall gap [eV]"
     ]
