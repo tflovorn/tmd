@@ -4,17 +4,29 @@ BeginPackage["HexPlot`"]
 
 fpath = $ScriptCommandLine[[2]]
 prefix = $ScriptCommandLine[[3]]
-shiftname = $ScriptCommandLine[[4]]
-plotdata = Import[fpath, "RawJSON"]
+shiftName = $ScriptCommandLine[[4]]
+plotData = Import[fpath, "RawJSON"]
 
 a1 = {1/2, -Sqrt[3]/2}
 a2 = {1/2, Sqrt[3]/2}
 (* NOTE - assume that the d-grid has the same number of ds along a1 and a2 *)
-N1 = Sqrt[Length[plotdata[["_ds"]]]]
+N1 = Sqrt[Length[plotData[["_ds"]]]]
 N2 = N1
 
 (* Assume origin is at A site if shift to B site is not specified *)
-origin = If[shiftname == "B", {1/2, 1/(2 Sqrt[3])}, {0, 0}]
+origin = If[shiftName == "B", {1/2, 1/(2 Sqrt[3])}, {0, 0}]
+
+(* Shift values such that the new zero is at the minimum value *)
+Rezero[series_] :=
+    Module[{minval = Min[series], shift},
+        shift = Function[x, x - minval];
+        Map[shift, series]
+    ]
+
+keysToRezero = {"meV_relative_total_energy"}
+Do[If[KeyExistsQ[plotData, k], plotData[[k]] = Rezero[plotData[[k]]], Null],
+    {k, keysToRezero}
+]
 
 (* Return the Cartesian form of d + {-1, 0, 1}a1 + {-1, 0, 1}a2 *)
 CartesianStar[d_] :=
@@ -34,7 +46,7 @@ CartesianData[series_] :=
 			Do[vs = v + origin;
 				AppendTo[xyv, {vs[[1]], vs[[2]], value}],
 				{v, CartesianStar[d]}
-			], {dval, Transpose[{plotdata[["_ds"]], series}]}
+			], {dval, Transpose[{plotData[["_ds"]], series}]}
 		];
 		xyv
 	]
@@ -52,7 +64,7 @@ titles = Association[
     "1/1" -> layer1<>" "<>klabel<>" gap [eV]",
     "0/1" -> layer0<>" -> "<>layer1<>" "<>klabel<>" gap [eV]",
     "1/0" -> layer1<>" -> "<>layer0<>" "<>klabel<>" gap [eV]",
-    "meV_relative_total_energy" -> "Total energy relative to d = 0 [meV]",
+    "meV_relative_total_energy" -> "Relative total energy [meV]",
     "eV_overall_gap" -> "Overall gap [eV]"
     ]
 
@@ -60,7 +72,7 @@ titles = Association[
 HexPlot[label_] :=
 	Module[{title = If[KeyExistsQ[titles, label], prefix<>" "<>titles[[label]], prefix<>" "<>label],
         fixlabel = StringReplace[label, "/" -> "_"],
-		xyv = CartesianData[plotdata[[label]]]},
+		xyv = CartesianData[plotData[[label]]]},
 		Export[prefix<>"_"<>fixlabel<>".png",
 			Show[
                 Graphics[{Thick, Arrow[{{0,0}, {1,0}}], Arrow[{{0,0}, {1/2,Sqrt[3]/2}}]}],
@@ -78,6 +90,6 @@ HexPlot[label_] :=
     ds, not value series to plot) *)
 HexPlotFilter[label_] := If[StringTake[label, 1] == "_", Null, HexPlot[label]]
 
-plots = AssociationMap[HexPlotFilter, Keys[plotdata]]
+plots = AssociationMap[HexPlotFilter, Keys[plotData]]
 
 EndPackage[]
