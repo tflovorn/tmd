@@ -8,6 +8,7 @@ setup(name='tmd', packages=find_packages(),
             'numpy',
             'matplotlib',
             'ase',
-            'pyyaml'
+            'pyyaml',
+            'numdifftools'
         ]
      )

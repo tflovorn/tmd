@@ -1,12 +1,15 @@
+from __future__ import division
 import argparse
 import os
 import json
 from multiprocessing import Pool
 import numpy as np
 import yaml
-from tmd.pwscf.parseScf import fermi_from_scf, D_from_scf
+import numdifftools
+from tmd.pwscf.parseScf import fermi_from_scf, D_from_scf, alat_from_scf
 from tmd.pwscf.extractQEBands import extractQEBands
 from tmd.wannier.bands import Hk_recip
+from tmd.wannier.bands import Hk as Hk_Cart
 from tmd.wannier.parseWin import parse_inner_window
 from tmd.wannier.fitError import dft_wan_correspondence
 from tmd.bilayer.wannier import get_Hr
@@ -83,13 +86,39 @@ def select_layer_contrib(layer_contribs_up, layer_contribs_down, spin, l, n):
 
     return contrib
 
-def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8):
+def get_curvature(D, Hr, k, n):
+    '''Calculate d^2 E / d k^2 along kx and ky directions at band n.
+    Assumes there are no band crossings in the region sampled, so that
+    the single index n can be used for all sampled ks.
+    '''
+    curvature = []
+    for d in range(2):
+        def Er_d(kd):
+            kr = []
+            for dp in range(3):
+                if dp == d:
+                    kr.append(kd)
+                else:
+                    kr.append(k[dp])
+
+            H_kr = Hk_Cart(kr, Hr, D.T)
+            w, U = np.linalg.eigh(H_kr)
+            Er = w[n]
+            return Er
+
+        fd = numdifftools.Derivative(Er_d, n=2)
+        curvature.append(fd(k[d]))
+
+    return curvature
+
+def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8, do_get_curvature=False):
     wannier_dir = os.path.join(work, prefix, "wannier")
     scf_path = os.path.join(wannier_dir, "scf.out")
     E_F = fermi_from_scf(scf_path)
+    D = D_from_scf(scf_path)
+    R = 2*np.pi*np.linalg.inv(D)
+
     if use_QE_evs:
-        D = D_from_scf(scf_path)
-        R = 2*np.pi*np.linalg.inv(D)
         # ks in QE bands output are in units of 2pi/a;
         # D is in units of a
         k_cart_2pi = np.dot(np.array(k), R) / (2*np.pi)
@@ -136,6 +165,8 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
 
     conduction = [None, None]
     valence = [None, None]
+    conduction_curvature = [None, None]
+    valence_curvature = [None, None]
 
     n = below_fermi
     while n >= 0:
@@ -144,6 +175,10 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
 
             if contrib > layer_threshold and valence[l] is None:
                 valence[l] = n
+                if do_get_curvature:
+                    k_Cart = np.dot(np.array(k), R)
+                    valence_curvature[l] = get_curvature(D, Hr, k_Cart, n)
+
         n -= 1
 
     n = above_fermi
@@ -153,6 +188,10 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
 
             if contrib > layer_threshold and conduction[l] is None:
                 conduction[l] = n
+                if do_get_curvature:
+                    k_Cart = np.dot(np.array(k), R)
+                    conduction_curvature[l] = get_curvature(D, Hr, k_Cart, n)
+
         n += 1
 
     gaps = {}
@@ -166,6 +205,8 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
         gaps["1_valence"] = float(ev[valence[1]+offset])
         gaps["0_conduction"] = float(ev[conduction[0]+offset])
         gaps["1_conduction"] = float(ev[conduction[1]+offset])
+        if do_get_curvature:
+            add_curvature(gaps, valence_curvature, conduction_curvature)
     else:
         gaps["0/0"] = float(w[conduction[0]] - w[valence[0]])
         gaps["1/1"] = float(w[conduction[1]] - w[valence[1]])
@@ -175,13 +216,25 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
         gaps["1_valence"] = float(w[valence[1]])
         gaps["0_conduction"] = float(w[conduction[0]])
         gaps["1_conduction"] = float(w[conduction[1]])
+        if do_get_curvature:
+            add_curvature(gaps, valence_curvature, conduction_curvature)
 
     return gaps
 
-def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_evs, ev_width, k, gap_label, gap_label_tex):
+def add_curvature(gaps, valence_curvature, conduction_curvature):
+    gaps["0_valence_curvature_kx"] = float(valence_curvature[0][0])
+    gaps["1_valence_curvature_kx"] = float(valence_curvature[1][0])
+    gaps["0_valence_curvature_ky"] = float(valence_curvature[0][1])
+    gaps["1_valence_curvature_ky"] = float(valence_curvature[1][1])
+    gaps["0_conduction_curvature_kx"] = float(conduction_curvature[0][0])
+    gaps["1_conduction_curvature_kx"] = float(conduction_curvature[1][0])
+    gaps["0_conduction_curvature_ky"] = float(conduction_curvature[0][1])
+    gaps["1_conduction_curvature_ky"] = float(conduction_curvature[1][1])
+
+def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_evs, ev_width, k, gap_label, gap_label_tex, do_get_curvature, alat_Bohr):
     get_gaps_args = []
     for d, prefix in dps:
-        get_gaps_args.append([work, prefix, threshold, k, spin_valence, spin_conduction, use_QE_evs, ev_width])
+        get_gaps_args.append([work, prefix, threshold, k, spin_valence, spin_conduction, use_QE_evs, ev_width, do_get_curvature])
 
     with Pool() as p:
         all_gaps = p.starmap(get_gaps, get_gaps_args)
@@ -208,6 +261,8 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
 
     layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
     layer0_valence, layer1_valence, layer0_conduction, layer1_conduction = [], [], [], []
+    layer0_valence_effmass_kx, layer1_valence_effmass_kx, layer0_valence_effmass_ky, layer1_valence_effmass_ky = [], [], [], []
+    layer0_conduction_effmass_kx, layer1_conduction_effmass_kx, layer0_conduction_effmass_ky, layer1_conduction_effmass_ky = [], [], [], []
     for d, gaps in gap_data:
         layer0_gap_vals.append(gaps["0/0"])
         layer1_gap_vals.append(gaps["1/1"])
@@ -226,6 +281,32 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
     plot_d_vals("{}_layer1_valence".format(gap_label), "{} WS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer1_valence)
     plot_d_vals("{}_layer0_conduction".format(gap_label), "{} MoS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer0_conduction)
     plot_d_vals("{}_layer1_conduction".format(gap_label), "{} WS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer1_conduction)
+
+    if do_get_curvature:
+        hbar_eV_s = 6.582119514e-16
+        me_eV_per_c2 = 0.5109989461e6
+        c_m_per_s = 2.99792458e8
+        Bohr_m = 0.52917721067e-10
+        fac = hbar_eV_s**2 / (me_eV_per_c2 * (c_m_per_s)**(-2) * (Bohr_m)**2 * alat_Bohr**2)
+
+        for d, gaps in gap_data:
+            layer0_valence_effmass_kx.append(-fac/gaps["0_valence_curvature_kx"])
+            layer1_valence_effmass_kx.append(-fac/gaps["1_valence_curvature_kx"])
+            layer0_valence_effmass_ky.append(-fac/gaps["0_valence_curvature_ky"])
+            layer1_valence_effmass_ky.append(-fac/gaps["1_valence_curvature_ky"])
+            layer0_conduction_effmass_kx.append(fac/gaps["0_conduction_curvature_kx"])
+            layer1_conduction_effmass_kx.append(fac/gaps["1_conduction_curvature_kx"])
+            layer0_conduction_effmass_ky.append(fac/gaps["0_conduction_curvature_ky"])
+            layer1_conduction_effmass_ky.append(fac/gaps["1_conduction_curvature_ky"])
+
+        plot_d_vals("{}_layer0_valence_effmass_kx".format(gap_label), "{} MoS$_2$ valence $m^*_x/m_e$".format(gap_label_tex), dps, layer0_valence_effmass_kx)
+        plot_d_vals("{}_layer1_valence_effmass_kx".format(gap_label), "{} WS$_2$ valence $m^*_x/m_e$".format(gap_label_tex), dps, layer1_valence_effmass_kx)
+        plot_d_vals("{}_layer0_valence_effmass_ky".format(gap_label), "{} MoS$_2$ valence $m^*_y/m_e$".format(gap_label_tex), dps, layer0_valence_effmass_ky)
+        plot_d_vals("{}_layer1_valence_effmass_ky".format(gap_label), "{} WS$_2$ valence $m^*_y/m_e$".format(gap_label_tex), dps, layer1_valence_effmass_ky)
+        plot_d_vals("{}_layer0_conduction_effmass_kx".format(gap_label), "{} MoS$_2$ conduction $m^*_x/m_e$".format(gap_label_tex), dps, layer0_conduction_effmass_kx)
+        plot_d_vals("{}_layer1_conduction_effmass_kx".format(gap_label), "{} WS$_2$ conduction $m^*_x/m_e$".format(gap_label_tex), dps, layer1_conduction_effmass_kx)
+        plot_d_vals("{}_layer0_conduction_effmass_ky".format(gap_label), "{} MoS$_2$ conduction $m^*_y/m_e$".format(gap_label_tex), dps, layer0_conduction_effmass_ky)
+        plot_d_vals("{}_layer1_conduction_effmass_ky".format(gap_label), "{} WS$_2$ conduction $m^*_y/m_e$".format(gap_label_tex), dps, layer1_conduction_effmass_ky)
 
 def _main():
     parser = argparse.ArgumentParser("Calculation of gaps",
@@ -258,8 +339,15 @@ def _main():
 
     K = (1/3, 1/3, 0.0)
     Gamma = (0.0, 0.0, 0.0)
-    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, K, "K", "$K$")
-    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, Gamma, "Gamma", "$\\Gamma$")
+    do_get_curvature_K, do_get_curvature_Gamma = True, False
+
+    prefix_0 = dps[0][1]
+    wannier_dir = os.path.join(work, prefix_0, "wannier")
+    scf_path = os.path.join(wannier_dir, "scf.out")
+    alat_Bohr = alat_from_scf(scf_path)
+
+    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, K, "K", "$K$", do_get_curvature_K, alat_Bohr)
+    write_gap_data(work, dps, args.threshold, args.spin_valence, args.spin_conduction, args.use_QE_evs, args.ev_width, Gamma, "Gamma", "$\\Gamma$", do_get_curvature_Gamma, alat_Bohr)
 
 if __name__ == "__main__":
     _main()
