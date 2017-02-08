@@ -224,6 +224,9 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
 
     return gaps
 
+def reduced_mass(m1, m2):
+    return m1 * m2 / (m1 + m2)
+
 def add_curvature(gaps, valence_curvature, conduction_curvature, alat_Bohr):
     hbar_eV_s = 6.582119514e-16
     me_eV_per_c2 = 0.5109989461e6
@@ -239,6 +242,11 @@ def add_curvature(gaps, valence_curvature, conduction_curvature, alat_Bohr):
     gaps["1_conduction_effmass_kx"] = float(fac/conduction_curvature[1][0])
     gaps["0_conduction_effmass_ky"] = float(fac/conduction_curvature[0][1])
     gaps["1_conduction_effmass_ky"] = float(fac/conduction_curvature[1][1])
+
+    gaps["0_reduced_effmass_kx"] = reduced_mass(gaps["0_valence_effmass_kx"], gaps["0_conduction_effmass_kx"])
+    gaps["0_reduced_effmass_ky"] = reduced_mass(gaps["0_valence_effmass_ky"], gaps["0_conduction_effmass_ky"])
+    gaps["1_reduced_effmass_kx"] = reduced_mass(gaps["1_valence_effmass_kx"], gaps["1_conduction_effmass_kx"])
+    gaps["1_reduced_effmass_ky"] = reduced_mass(gaps["1_valence_effmass_ky"], gaps["1_conduction_effmass_ky"])
 
 def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_evs, ev_width, k, gap_label, gap_label_tex, do_get_curvature):
     get_gaps_args = []
@@ -270,8 +278,7 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
 
     layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
     layer0_valence, layer1_valence, layer0_conduction, layer1_conduction = [], [], [], []
-    layer0_valence_effmass_kx, layer1_valence_effmass_kx, layer0_valence_effmass_ky, layer1_valence_effmass_ky = [], [], [], []
-    layer0_conduction_effmass_kx, layer1_conduction_effmass_kx, layer0_conduction_effmass_ky, layer1_conduction_effmass_ky = [], [], [], []
+
     for d, gaps in gap_data:
         layer0_gap_vals.append(gaps["0/0"])
         layer1_gap_vals.append(gaps["1/1"])
@@ -292,6 +299,10 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
     plot_d_vals("{}_layer1_conduction".format(gap_label), "{} WS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer1_conduction)
 
     if do_get_curvature:
+        layer0_valence_effmass_kx, layer1_valence_effmass_kx, layer0_valence_effmass_ky, layer1_valence_effmass_ky = [], [], [], []
+        layer0_conduction_effmass_kx, layer1_conduction_effmass_kx, layer0_conduction_effmass_ky, layer1_conduction_effmass_ky = [], [], [], []
+        layer0_reduced_effmass_kx, layer0_reduced_effmass_ky, layer1_reduced_effmass_kx, layer1_reduced_effmass_ky = [], [], [], []
+
         for d, gaps in gap_data:
             layer0_valence_effmass_kx.append(gaps["0_valence_effmass_kx"])
             layer1_valence_effmass_kx.append(gaps["1_valence_effmass_kx"])
@@ -301,6 +312,10 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
             layer1_conduction_effmass_kx.append(gaps["1_conduction_effmass_kx"])
             layer0_conduction_effmass_ky.append(gaps["0_conduction_effmass_ky"])
             layer1_conduction_effmass_ky.append(gaps["1_conduction_effmass_ky"])
+            layer0_reduced_effmass_kx.append(gaps["0_reduced_effmass_kx"])
+            layer0_reduced_effmass_ky.append(gaps["0_reduced_effmass_ky"])
+            layer1_reduced_effmass_kx.append(gaps["1_reduced_effmass_kx"])
+            layer1_reduced_effmass_ky.append(gaps["1_reduced_effmass_ky"])
 
         plot_d_vals("{}_layer0_valence_effmass_kx".format(gap_label), "{} MoS$_2$ valence $m^*_x/m_e$".format(gap_label_tex), dps, layer0_valence_effmass_kx)
         plot_d_vals("{}_layer1_valence_effmass_kx".format(gap_label), "{} WS$_2$ valence $m^*_x/m_e$".format(gap_label_tex), dps, layer1_valence_effmass_kx)
@@ -310,6 +325,10 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
         plot_d_vals("{}_layer1_conduction_effmass_kx".format(gap_label), "{} WS$_2$ conduction $m^*_x/m_e$".format(gap_label_tex), dps, layer1_conduction_effmass_kx)
         plot_d_vals("{}_layer0_conduction_effmass_ky".format(gap_label), "{} MoS$_2$ conduction $m^*_y/m_e$".format(gap_label_tex), dps, layer0_conduction_effmass_ky)
         plot_d_vals("{}_layer1_conduction_effmass_ky".format(gap_label), "{} WS$_2$ conduction $m^*_y/m_e$".format(gap_label_tex), dps, layer1_conduction_effmass_ky)
+        plot_d_vals("{}_layer0_reduced_effmass_kx".format(gap_label), "{} MoS$_2$ $\\mu^*_x/m_e$".format(gap_label_tex), dps, layer0_reduced_effmass_kx)
+        plot_d_vals("{}_layer0_reduced_effmass_ky".format(gap_label), "{} MoS$_2$ $\\mu^*_y/m_e$".format(gap_label_tex), dps, layer0_reduced_effmass_ky)
+        plot_d_vals("{}_layer1_reduced_effmass_kx".format(gap_label), "{} WS$_2$ $\\mu^*_x/m_e$".format(gap_label_tex), dps, layer1_reduced_effmass_kx)
+        plot_d_vals("{}_layer1_reduced_effmass_ky".format(gap_label), "{} WS$_2$ $\\mu^*_y/m_e$".format(gap_label_tex), dps, layer1_reduced_effmass_ky)
 
 def _main():
     parser = argparse.ArgumentParser("Calculation of gaps",
