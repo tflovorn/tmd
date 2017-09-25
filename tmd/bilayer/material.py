@@ -51,9 +51,9 @@ def base_material(soc, xc, pp='nc'):
     material["degauss"] = 0.02
 
     material["scf_conv_thr"] = 1e-8
-    material["nscf_conv_thr"] = 1e-10
-    material["nscf_dos_conv_thr"] = 1e-10
-    material["bands_conv_thr"] = 1e-10
+    material["nscf_conv_thr"] = 1e-8
+    material["nscf_dos_conv_thr"] = 1e-8
+    material["bands_conv_thr"] = 1e-8
 
     material["relax_conv_thr"] = 1e-8
     material["relax_etot_conv_thr"] = 2e-5

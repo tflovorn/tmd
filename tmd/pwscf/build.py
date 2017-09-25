@@ -64,7 +64,7 @@ def build_qe(material, calc_type):
     # These may be None.
     control = _control(calc_type, pseudo_dir, etot_conv_thr, forc_conv_thr, calc_name)
     system = _system(calc_type, material)
-    electrons = _electrons(conv_thr)
+    electrons = _electrons(calc_type, conv_thr)
     ions = _ions(calc_type)
     atomic_species = _atomic_species(material["pseudo"], material["weight"])
     cell_parameters = _cell_parameters(axes)
@@ -155,11 +155,15 @@ def _atom_types(cartpos):
     num_atom_types = len(atom_types)
     return num_atoms, num_atom_types
 
-def _electrons(conv_thr):
+def _electrons(calc_type, conv_thr):
     nl = [" &electrons"]
     nl.append("    startingwfc='random',")
     nl.append("    diagonalization='david',")
-    nl.append("    conv_thr={}".format(str(conv_thr)))
+    if calc_type in ['scf', 'relax']:
+        nl.append("    conv_thr={}".format(str(conv_thr)))
+    else:
+        nl.append("    diago_thr_init={}".format(str(conv_thr)))
+
     nl.append(" /")
     return "\n".join(nl)
 
