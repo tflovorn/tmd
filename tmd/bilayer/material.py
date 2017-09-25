@@ -59,8 +59,8 @@ def base_material(soc, xc, pp='nc'):
     material["relax_etot_conv_thr"] = 2e-5
     material["relax_forc_conv_thr"] = 2e-4
 
-    material["scf_Nk1"] = 9
-    material["scf_Nk2"] = 9
+    material["scf_Nk1"] = 18
+    material["scf_Nk2"] = 18
     material["relax_Nk1"] = 9
     material["relax_Nk2"] = 9
     material["nscf_Nk1"] = 9
