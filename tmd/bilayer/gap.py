@@ -208,6 +208,10 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
         gaps["1_valence"] = float(ev[valence[1]+offset])
         gaps["0_conduction"] = float(ev[conduction[0]+offset])
         gaps["1_conduction"] = float(ev[conduction[1]+offset])
+
+        conduction_min = min(conduction[0], conduction[1]) + offset
+        gaps["conduction_min_partner"] = float(w[conduction_min + 1])
+
         if do_get_curvature:
             add_curvature(gaps, valence_curvature, conduction_curvature, alat_Bohr)
     else:
@@ -219,6 +223,10 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
         gaps["1_valence"] = float(w[valence[1]])
         gaps["0_conduction"] = float(w[conduction[0]])
         gaps["1_conduction"] = float(w[conduction[1]])
+
+        conduction_min = min(conduction[0], conduction[1])
+        gaps["conduction_min_partner"] = float(w[conduction_min + 1])
+
         if do_get_curvature:
             add_curvature(gaps, valence_curvature, conduction_curvature, alat_Bohr)
 
@@ -278,6 +286,7 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
 
     layer0_gap_vals, layer1_gap_vals, interlayer_01_gap_vals, interlayer_10_gap_vals = [], [], [], []
     layer0_valence, layer1_valence, layer0_conduction, layer1_conduction = [], [], [], []
+    conduction_min_partner = []
 
     for d, gaps in gap_data:
         layer0_gap_vals.append(gaps["0/0"])
@@ -288,6 +297,7 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
         layer1_valence.append(gaps["1_valence"])
         layer0_conduction.append(gaps["0_conduction"])
         layer1_conduction.append(gaps["1_conduction"])
+        conduction_min_partner.append(gaps["conduction_min_partner"])
 
     plot_d_vals("{}_layer0_gaps".format(gap_label), "{} MoS$_2$ gap [eV]".format(gap_label_tex), dps, layer0_gap_vals)
     plot_d_vals("{}_layer1_gaps".format(gap_label), "{} WS$_2$ gap [eV]".format(gap_label_tex), dps, layer1_gap_vals)
@@ -297,6 +307,7 @@ def write_gap_data(work, dps, threshold, spin_valence, spin_conduction, use_QE_e
     plot_d_vals("{}_layer1_valence".format(gap_label), "{} WS$_2$ valence maximum [eV]".format(gap_label_tex), dps, layer1_valence)
     plot_d_vals("{}_layer0_conduction".format(gap_label), "{} MoS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer0_conduction)
     plot_d_vals("{}_layer1_conduction".format(gap_label), "{} WS$_2$ conduction minimum [eV]".format(gap_label_tex), dps, layer1_conduction)
+    plot_d_vals("{}_conduction_min_partner".format(gap_label), "{} conduction min. + 1 [eV]".format(gap_label_tex), dps, conduction_min_partner)
 
     if do_get_curvature:
         layer0_valence_effmass_kx, layer1_valence_effmass_kx, layer0_valence_effmass_ky, layer1_valence_effmass_ky = [], [], [], []
