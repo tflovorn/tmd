@@ -12,6 +12,7 @@ from tmd.bilayer.wannier import get_Hr
 from tmd.bilayer.dgrid import get_prefixes
 from tmd.bilayer.bilayer_util import global_config
 from tmd.bilayer.plot_ds import ds_from_prefixes, wrap_cell, sorted_d_group, plot_d_vals
+from tmd.bilayer.gap import get_layer_indices, layer_band_extrema
 
 _Angstrom_per_bohr = 0.5291772
 
@@ -29,7 +30,7 @@ def bottom_conduction_index(E_F, Es):
 
     return first_above_E_F
 
-def get_optical_data(work, prefix):
+def get_system_details(work, prefix):
     wannier_dir = os.path.join(work, prefix, "wannier")
     scf_path = os.path.join(wannier_dir, "scf.out")
     E_F = fermi_from_scf(scf_path)
@@ -44,6 +45,45 @@ def get_optical_data(work, prefix):
     Hk = Hk_Cart(K_Cart, Hr, latVecs)
 
     Es, U = np.linalg.eigh(Hk)
+
+    return latVecs, K_Cart, Hr, Es, U, E_F 
+
+def get_optical_data_intralayer(work, prefix):
+    latVecs, K_Cart, Hr, Es, U, E_F = get_system_details(work, prefix)
+    H_deriv = dHk_dk(K_Cart, Hr, latVecs)
+
+    layer_indices_up = get_layer_indices(work, prefix, 'up')
+    layer_indices_down = get_layer_indices(work, prefix, 'down')
+
+    layer_threshold = 0.7
+    conduction, valence = layer_band_extrema(Es, U, E_F, layer_indices_up, layer_indices_down,
+                layer_threshold)
+
+    pairs = {"v0_l0_c0_l0": [valence[0], conduction[0]],
+            "v0_l0_c1_l0": [valence[0], conduction[0] + 1],
+            "v0_l1_c0_l1": [valence[1], conduction[1]],
+            "v0_l1_c1_l1": [valence[1], conduction[1] + 1]}
+
+    opt = {}
+    for k, (v_index, c_index) in pairs.items():
+        v_state_adj = U[:, v_index].conjugate().T
+        c_state = U[:, c_index]
+
+        elem_keys = ["{}_re".format(k), "{}_im".format(k), "{}_norm".format(k)]
+        for ek in elem_keys:
+            opt[ek] = []
+
+        for c in range(2):
+            opt_elem = np.dot(v_state_adj, np.dot(H_deriv[c], c_state))[0, 0]
+
+            opt[elem_keys[0]].append(opt_elem.real)
+            opt[elem_keys[1]].append(opt_elem.imag)
+            opt[elem_keys[2]].append(abs(opt_elem))
+
+    return opt
+
+def get_optical_data_interlayer(work, prefix):
+    latVecs, K_Cart, Hr, Es, U, E_F = get_system_details(work, prefix)
 
     cond_0 = bottom_conduction_index(E_F, Es)
     cond_1 = cond_0 + 1
@@ -68,33 +108,58 @@ def get_optical_data(work, prefix):
 
     return opt
 
+def make_json_data(dps, all_opt):
+    json_opt = {"_ds": []}
+
+    for (d, _), opt in zip(dps, all_opt):
+        json_opt["_ds"].append(d)
+        for k, v in opt.items():
+            if k not in json_opt:
+                json_opt[k] = []
+
+            json_opt[k].append(v)
+
+    return json_opt
+
+def plot_intralayer(dps, all_optical_data_intra):
+    for k in all_optical_data_intra[0].keys():
+        if k == "_ds":
+            continue
+
+        k_data = [[opt[k][c] for opt in all_optical_data_intra] for c in range(2)]
+
+        for c, xy in enumerate(["x", "y"]):
+            plot_name = "{}_{}".format(k, xy)
+            plot_title = plot_name
+
+            plot_d_vals(plot_name, plot_title, dps, k_data[c])
+
 def write_optical_data(work, dps):
     get_optical_data_args = [[work, prefix] for _, prefix in dps]
 
     with Pool() as p:
-        all_optical_data = p.starmap(get_optical_data, get_optical_data_args)
+        all_optical_data_inter = p.starmap(get_optical_data_interlayer, get_optical_data_args)
+        all_optical_data_intra = p.starmap(get_optical_data_intralayer, get_optical_data_args)
 
-    json_optical_data = {"_ds": []}
+    json_optical_data_intra = make_json_data(dps, all_optical_data_intra)
+    json_optical_data_inter = make_json_data(dps, all_optical_data_inter)
 
-    for (d, _), opt in zip(dps, all_optical_data):
-        json_optical_data["_ds"].append(d)
-        for k, v in opt.items():
-            if k not in json_optical_data:
-                json_optical_data[k] = []
+    with open("K_optical_data_intralayer.json", 'w') as fp:
+        json.dump(json_optical_data_intra, fp)
 
-            json_optical_data[k].append(v)
+    with open("K_optical_data_interlayer.json", 'w') as fp:
+        json.dump(json_optical_data_inter, fp)
 
-    with open("K_optical_data.json", 'w') as fp:
-        json.dump(json_optical_data, fp)
+    plot_intralayer(dps, all_optical_data_intra)
 
     # Highest valence band -> lowest conduction band; (x, y) components.
-    opt_v0_c0_re = [[opt["v0_c0_re"][c] for opt in all_optical_data] for c in range(2)]
-    opt_v0_c0_im = [[opt["v0_c0_im"][c] for opt in all_optical_data] for c in range(2)]
-    opt_v0_c0_norm = [[opt["v0_c0_norm"][c] for opt in all_optical_data] for c in range(2)]
+    opt_v0_c0_re = [[opt["v0_c0_re"][c] for opt in all_optical_data_inter] for c in range(2)]
+    opt_v0_c0_im = [[opt["v0_c0_im"][c] for opt in all_optical_data_inter] for c in range(2)]
+    opt_v0_c0_norm = [[opt["v0_c0_norm"][c] for opt in all_optical_data_inter] for c in range(2)]
     # Highest valence band -> second-lowest conduction band; (x, y) components.
-    opt_v0_c1_re = [[opt["v0_c1_re"][c] for opt in all_optical_data] for c in range(2)]
-    opt_v0_c1_im = [[opt["v0_c1_im"][c] for opt in all_optical_data] for c in range(2)]
-    opt_v0_c1_norm = [[opt["v0_c1_norm"][c] for opt in all_optical_data] for c in range(2)]
+    opt_v0_c1_re = [[opt["v0_c1_re"][c] for opt in all_optical_data_inter] for c in range(2)]
+    opt_v0_c1_im = [[opt["v0_c1_im"][c] for opt in all_optical_data_inter] for c in range(2)]
+    opt_v0_c1_norm = [[opt["v0_c1_norm"][c] for opt in all_optical_data_inter] for c in range(2)]
 
     plot_d_vals("K_v0_c0_x_re", "Re <K, top valence| $\\left.\\frac{dH}{dk_x}\\right|_K$ |K, bottom conduction> [eV A]", dps, opt_v0_c0_re[0])
     plot_d_vals("K_v0_c0_y_re", "Re <K, top valence| $\\left.\\frac{dH}{dk_y}\\right|_K$ |K, bottom conduction> [eV A]", dps, opt_v0_c0_re[1])
