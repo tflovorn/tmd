@@ -113,6 +113,38 @@ def get_curvature(D, Hr, k, n):
 
     return curvature
 
+def layer_band_extrema(Es, U, E_F, layer_indices_up, layer_indices_down, layer_threshold,
+        spin_valence=None, spin_conduction=None):
+    conduction = [None, None]
+    valence = [None, None]
+
+    layer_contribs_up = get_layer_contribs(layer_indices_up, U)
+    layer_contribs_down = get_layer_contribs(layer_indices_down, U)
+
+    below_fermi, above_fermi = bracket_indices(Es, E_F)
+
+    n = below_fermi
+    while n >= 0 and any([valence[l] is None for l in [0, 1]]):
+        for l in [0, 1]:
+            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_valence, l, n)
+
+            if contrib > layer_threshold and valence[l] is None:
+                valence[l] = n
+
+        n -= 1
+
+    n = above_fermi
+    while n < len(Es) and any([conduction[l] is None for l in [0, 1]]):
+        for l in [0, 1]:
+            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_conduction, l, n)
+
+            if contrib > layer_threshold and conduction[l] is None:
+                conduction[l] = n
+
+        n += 1
+
+    return conduction, valence
+
 def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conduction=None, use_QE_evs=False, ev_width=8, do_get_curvature=False):
     wannier_dir = os.path.join(work, prefix, "wannier")
     scf_path = os.path.join(wannier_dir, "scf.out")
@@ -120,6 +152,7 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
     alat_Bohr = alat_from_scf(scf_path)
     D = D_from_scf(scf_path)
     R = 2*np.pi*np.linalg.inv(D)
+    k_Cart = np.dot(np.array(k), R)
 
     if use_QE_evs:
         # ks in QE bands output are in units of 2pi/a;
@@ -161,41 +194,15 @@ def get_gaps(work, prefix, layer_threshold, k, spin_valence=None, spin_conductio
                 w, inner_win)
         offset = dft_start_index - wan_start_index
 
-    layer_contribs_up = get_layer_contribs(layer_indices_up, U)
-    layer_contribs_down = get_layer_contribs(layer_indices_down, U)
+    conduction, valence = layer_band_extrema(w, U, E_F, layer_indices_up, layer_indices_down,
+            layer_threshold, spin_valence, spin_conduction)
 
-    below_fermi, above_fermi = bracket_indices(w, E_F)
-
-    conduction = [None, None]
-    valence = [None, None]
     conduction_curvature = [None, None]
     valence_curvature = [None, None]
-
-    n = below_fermi
-    while n >= 0:
+    if do_get_curvature:
         for l in [0, 1]:
-            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_valence, l, n)
-
-            if contrib > layer_threshold and valence[l] is None:
-                valence[l] = n
-                if do_get_curvature:
-                    k_Cart = np.dot(np.array(k), R)
-                    valence_curvature[l] = get_curvature(D, Hr, k_Cart, n)
-
-        n -= 1
-
-    n = above_fermi
-    while n < len(w):
-        for l in [0, 1]:
-            contrib = select_layer_contrib(layer_contribs_up, layer_contribs_down, spin_conduction, l, n)
-
-            if contrib > layer_threshold and conduction[l] is None:
-                conduction[l] = n
-                if do_get_curvature:
-                    k_Cart = np.dot(np.array(k), R)
-                    conduction_curvature[l] = get_curvature(D, Hr, k_Cart, n)
-
-        n += 1
+            valence_curvature[l] = get_curvature(D, Hr, k_Cart, valence[l])
+            conduction_curvature[l] = get_curvature(D, Hr, k_Cart, conduction[l])
 
     gaps = {}
     if use_QE_evs:
